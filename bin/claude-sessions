@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+import json
+import glob
+import os
+import sys
+from datetime import datetime
+
+sessions = []
+
+for jsonl in glob.glob("/root/.claude/projects/*/*.jsonl"):
+    session_id = os.path.basename(jsonl).replace(".jsonl", "")
+    mtime = os.path.getmtime(jsonl)
+
+    first_message = None
+    with open(jsonl) as f:
+        for line in f:
+            obj = json.loads(line)
+            if obj.get("type") == "user" and obj.get("message", {}).get("role") == "user":
+                content = obj["message"].get("content", "")
+                if isinstance(content, str):
+                    first_message = content.split("\n")[0][:80]
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            first_message = block["text"].split("\n")[0][:80]
+                            break
+                break
+
+    if first_message is None:
+        continue
+
+    sessions.append((mtime, session_id, first_message))
+
+sessions.sort(key=lambda s: s[0], reverse=True)
+
+limit = int(sys.argv[1]) if len(sys.argv) > 1 else 20
+
+for mtime, session_id, first_message in sessions[:limit]:
+    ts = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+    print(f"{ts}  {session_id}  {first_message}")
