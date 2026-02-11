@@ -1,14 +1,20 @@
 use {
+  error::Error,
   mailparse::MailHeaderMap,
-  redb::{Database, ReadableTable, Table, TableDefinition},
+  redb::{Database, ReadableTable, Table, TableDefinition, TableHandle},
+  snafu::{Backtrace, GenerateImplicitData, ResultExt, Snafu},
   std::{
-    env, fs,
+    env, fs, io,
     io::Write,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Command, ExitStatus, Stdio},
   },
   uuid::Uuid,
 };
+
+mod error;
+
+type Result<T = (), E = Error> = std::result::Result<T, E>;
 
 const MESSAGE_IDS: TableDefinition<&str, &str> = TableDefinition::new("message_ids");
 const THREADS: TableDefinition<&str, &str> = TableDefinition::new("threads");
@@ -20,9 +26,16 @@ const THREAD_DIR: &str = "/root/hopper";
 fn main() {
   let home = env::var("HOME").unwrap_or_else(|_| "/root".into());
   let db_path = PathBuf::from(&home).join(".hopper.redb");
-  let db = Database::create(&db_path).expect("failed to open database");
+  let db = Database::create(&db_path)
+    .context(error::DatabaseOpen {
+      path: db_path.clone(),
+    })
+    .expect("failed to open database");
 
   let mut entries = fs::read_dir(MAIL_NEW)
+    .context(error::ReadMailDir {
+      path: PathBuf::from(MAIL_NEW),
+    })
     .expect("failed to read mail directory")
     .filter_map(|e| e.ok())
     .collect::<Vec<_>>();
@@ -37,15 +50,19 @@ fn main() {
         .ok()
         .and_then(|m| m.headers.get_first_value("Subject"))
         .unwrap_or_default();
-      let _ = send_error_reply(&subject, &format!("{e:#}"));
+      let _ = send_error_reply(&subject, &format!("{e}"));
       move_to_cur(&path);
     }
   }
 }
 
-fn process_message(db: &Database, path: &Path) -> anyhow::Result<()> {
-  let raw = fs::read(path)?;
-  let parsed = mailparse::parse_mail(&raw)?;
+fn process_message(db: &Database, path: &Path) -> Result {
+  let raw = fs::read(path).context(error::ReadMessage {
+    path: path.to_path_buf(),
+  })?;
+  let parsed = mailparse::parse_mail(&raw).context(error::MailParse {
+    path: path.to_path_buf(),
+  })?;
 
   let subject = parsed
     .headers
@@ -61,16 +78,22 @@ fn process_message(db: &Database, path: &Path) -> anyhow::Result<()> {
 
   let reference_ids = collect_reference_ids(&in_reply_to, &references);
 
-  let write_txn = db.begin_write()?;
+  let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
 
   let (slug, original_subject, is_continuation) = {
-    let table = write_txn.open_table(MESSAGE_IDS)?;
+    let table = write_txn
+      .open_table(MESSAGE_IDS)
+      .context(error::DatabaseTable {
+        table: MESSAGE_IDS.name(),
+      })?;
     resolve_thread(&table, &reference_ids, &subject)?
   };
 
   let thread_dir = PathBuf::from(THREAD_DIR).join(&slug);
   let is_existing_dir = thread_dir.exists();
-  fs::create_dir_all(&thread_dir)?;
+  fs::create_dir_all(&thread_dir).context(error::CreateThreadDir {
+    path: thread_dir.clone(),
+  })?;
 
   let mut cmd = Command::new("claude");
   cmd.arg("--print");
@@ -82,17 +105,21 @@ fn process_message(db: &Database, path: &Path) -> anyhow::Result<()> {
   cmd.stdout(Stdio::piped());
   cmd.stderr(Stdio::piped());
 
-  let mut child = cmd.spawn()?;
+  let mut child = cmd.spawn().context(error::ClaudeSpawn)?;
   child
     .stdin
     .take()
     .expect("failed to open stdin")
-    .write_all(body.as_bytes())?;
-  let output = child.wait_with_output()?;
+    .write_all(body.as_bytes())
+    .context(error::ClaudeStdin)?;
+  let output = child.wait_with_output().context(error::ClaudeWait)?;
 
   if !output.status.success() {
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    anyhow::bail!("claude exited with {}: {stderr}", output.status);
+    return Err(Error::ClaudeStatus {
+      backtrace: Some(Backtrace::generate()),
+      status: output.status,
+      stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+    });
   }
 
   let response = String::from_utf8_lossy(&output.stdout);
@@ -117,21 +144,47 @@ fn process_message(db: &Database, path: &Path) -> anyhow::Result<()> {
   )?;
 
   {
-    let mut table = write_txn.open_table(MESSAGE_IDS)?;
+    let mut table = write_txn
+      .open_table(MESSAGE_IDS)
+      .context(error::DatabaseTable {
+        table: MESSAGE_IDS.name(),
+      })?;
     if !message_id.is_empty() {
-      table.insert(message_id.as_str(), slug.as_str())?;
+      table
+        .insert(message_id.as_str(), slug.as_str())
+        .context(error::DatabaseInsert {
+          table: MESSAGE_IDS.name(),
+        })?;
     }
-    table.insert(outgoing_message_id.as_str(), slug.as_str())?;
+    table
+      .insert(outgoing_message_id.as_str(), slug.as_str())
+      .context(error::DatabaseInsert {
+        table: MESSAGE_IDS.name(),
+      })?;
   }
 
   {
-    let mut table = write_txn.open_table(THREADS)?;
-    if table.get(slug.as_str())?.is_none() {
-      table.insert(slug.as_str(), original_subject.as_str())?;
+    let mut table = write_txn
+      .open_table(THREADS)
+      .context(error::DatabaseTable {
+        table: THREADS.name(),
+      })?;
+    if table
+      .get(slug.as_str())
+      .context(error::DatabaseRead {
+        table: THREADS.name(),
+      })?
+      .is_none()
+    {
+      table
+        .insert(slug.as_str(), original_subject.as_str())
+        .context(error::DatabaseInsert {
+          table: THREADS.name(),
+        })?;
     }
   }
 
-  write_txn.commit()?;
+  write_txn.commit().context(error::DatabaseCommit)?;
 
   move_to_cur(path);
 
@@ -196,9 +249,11 @@ fn resolve_thread(
   table: &Table<&str, &str>,
   reference_ids: &[String],
   subject: &str,
-) -> anyhow::Result<(String, String, bool)> {
+) -> Result<(String, String, bool)> {
   for id in reference_ids {
-    if let Some(guard) = table.get(id.as_str())? {
+    if let Some(guard) = table.get(id.as_str()).context(error::DatabaseRead {
+      table: MESSAGE_IDS.name(),
+    })? {
       let slug = guard.value().to_string();
       let original_subject = strip_prefixes(subject);
       return Ok((slug, original_subject, true));
@@ -206,10 +261,10 @@ fn resolve_thread(
   }
 
   if !reference_ids.is_empty() {
-    anyhow::bail!(
-      "message references unknown thread (IDs: {})",
-      reference_ids.join(", ")
-    );
+    return Err(Error::UnknownThread {
+      backtrace: Some(Backtrace::generate()),
+      ids: reference_ids.join(", "),
+    });
   }
 
   let original_subject = strip_prefixes(subject);
@@ -273,7 +328,7 @@ fn send_reply(
   in_reply_to: &str,
   references: &str,
   message_id: &str,
-) -> anyhow::Result<()> {
+) -> Result {
   let mut cmd = Command::new("/usr/sbin/sendmail");
   cmd.arg("-t");
   cmd.stdin(Stdio::piped());
@@ -294,17 +349,20 @@ fn send_reply(
   message.push('\n');
   message.push_str(body);
 
-  let mut child = cmd.spawn()?;
+  let mut child = cmd.spawn().context(error::SendmailSpawn)?;
   child
     .stdin
     .take()
     .expect("failed to open stdin")
-    .write_all(message.as_bytes())?;
-  let output = child.wait_with_output()?;
+    .write_all(message.as_bytes())
+    .context(error::SendmailStdin)?;
+  let output = child.wait_with_output().context(error::SendmailWait)?;
 
   if !output.status.success() {
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    anyhow::bail!("sendmail failed: {stderr}");
+    return Err(Error::Sendmail {
+      backtrace: Some(Backtrace::generate()),
+      stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+    });
   }
 
   Ok(())
