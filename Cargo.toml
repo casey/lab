@@ -1,10 +1,3 @@
-[package]
-name = "hopper"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-mailparse = "0.16.1"
-redb = "3.1.0"
-snafu = "0.8.9"
-uuid = { version = "1.20.0", features = ["v4"] }
+[workspace]
+members = ["crates/*"]
+resolver = "3"
