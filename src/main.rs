@@ -330,7 +330,7 @@ fn send_reply(
   message_id: &str,
 ) -> Result {
   let mut cmd = Command::new("/usr/sbin/sendmail");
-  cmd.arg("-t");
+  cmd.args(["-t", "-odi"]);
   cmd.stdin(Stdio::piped());
   cmd.stdout(Stdio::piped());
   cmd.stderr(Stdio::piped());
