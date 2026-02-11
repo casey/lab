@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+cargo build --release -p hopper
+cp target/release/hopper /usr/local/bin/hopper
+cp etc/hopper.path /etc/systemd/system/hopper.path
+cp etc/hopper.service /etc/systemd/system/hopper.service
+systemctl daemon-reload
+systemctl enable --now hopper.path
