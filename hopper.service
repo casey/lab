@@ -1,0 +1,9 @@
+[Unit]
+Description=Process mail for Claude
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hopper
+Environment=HOME=/root
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=IS_SANDBOX=1

@@ -1,0 +1,10 @@
+[package]
+name = "hopper"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.101"
+mailparse = "0.16.1"
+redb = "3.1.0"
+uuid = { version = "1.20.0", features = ["v4"] }
