@@ -19,7 +19,9 @@ for jsonl in glob.glob("/root/.claude/projects/*/*.jsonl"):
             obj = json.loads(line)
             if obj.get("type") == "user":
                 cwd = obj.get("cwd", "")
-                branch = obj.get("gitBranch", "")
+                branch = obj.get("gitBranch") or ""
+                if branch == "HEAD":
+                    branch = ""
                 break
 
     if cwd is None:
@@ -34,4 +36,7 @@ limit = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 for mtime, session_id, cwd, branch in sessions[:limit]:
     date = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
     time = datetime.fromtimestamp(mtime).strftime("%H:%M")
-    print(f"{session_id}\t{date}\t{time}\t{cwd}\t{branch}")
+    fields = [session_id, date, time, cwd]
+    if branch:
+        fields.append(branch)
+    print("  ".join(fields))
