@@ -6,3 +6,4 @@ cp etc/hopper.path /etc/systemd/system/hopper.path
 cp etc/hopper.service /etc/systemd/system/hopper.service
 systemctl daemon-reload
 systemctl enable --now hopper.path
+systemctl restart hopper.path
