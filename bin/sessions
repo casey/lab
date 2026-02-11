@@ -36,7 +36,7 @@ limit = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 for mtime, session_id, cwd, branch in sessions[:limit]:
     date = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
     time = datetime.fromtimestamp(mtime).strftime("%H:%M")
-    fields = [session_id, date, time, cwd]
+    fields = [date, time, session_id, cwd]
     if branch:
         fields.append(branch)
     print(" ".join(fields))
