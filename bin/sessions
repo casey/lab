@@ -39,4 +39,4 @@ for mtime, session_id, cwd, branch in sessions[:limit]:
     fields = [session_id, date, time, cwd]
     if branch:
         fields.append(branch)
-    print("  ".join(fields))
+    print(" ".join(fields))
