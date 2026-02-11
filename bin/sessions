@@ -12,30 +12,26 @@ for jsonl in glob.glob("/root/.claude/projects/*/*.jsonl"):
     session_id = os.path.basename(jsonl).replace(".jsonl", "")
     mtime = os.path.getmtime(jsonl)
 
-    first_message = None
+    cwd = None
+    branch = None
     with open(jsonl) as f:
         for line in f:
             obj = json.loads(line)
-            if obj.get("type") == "user" and obj.get("message", {}).get("role") == "user":
-                content = obj["message"].get("content", "")
-                if isinstance(content, str):
-                    first_message = content.split("\n")[0][:80]
-                elif isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            first_message = block["text"].split("\n")[0][:80]
-                            break
+            if obj.get("type") == "user":
+                cwd = obj.get("cwd", "")
+                branch = obj.get("gitBranch", "")
                 break
 
-    if first_message is None:
+    if cwd is None:
         continue
 
-    sessions.append((mtime, session_id, first_message))
+    sessions.append((mtime, session_id, cwd, branch))
 
 sessions.sort(key=lambda s: s[0], reverse=True)
 
 limit = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 
-for mtime, session_id, first_message in sessions[:limit]:
-    ts = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
-    print(f"{ts}  {session_id}  {first_message}")
+for mtime, session_id, cwd, branch in sessions[:limit]:
+    date = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
+    time = datetime.fromtimestamp(mtime).strftime("%H:%M")
+    print(f"{session_id}\t{date}\t{time}\t{cwd}\t{branch}")
