@@ -1,5 +1,5 @@
 [Unit]
-Description=Watch for new mail to Claude
+Description=Watch for mail
 
 [Path]
 DirectoryNotEmpty=/var/mail/mail/new

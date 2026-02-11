@@ -1,5 +1,5 @@
 [Unit]
-Description=Process mail for Claude
+Description=Process mail
 
 [Service]
 Type=oneshot
