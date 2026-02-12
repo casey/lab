@@ -8,6 +8,7 @@ use {
     io::Write,
     path::{Path, PathBuf},
     process::{Command, ExitStatus, Stdio},
+    string::FromUtf8Error,
   },
   uuid::Uuid,
 };
@@ -115,14 +116,15 @@ fn process_message(db: &Database, path: &Path) -> Result {
   let output = child.wait_with_output().context(error::ClaudeWait)?;
 
   if !output.status.success() {
+    let stderr = String::from_utf8(output.stderr).context(error::ClaudeStderr)?;
     return Err(Error::ClaudeStatus {
       backtrace: Some(Backtrace::generate()),
       status: output.status,
-      stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+      stderr,
     });
   }
 
-  let response = String::from_utf8_lossy(&output.stdout);
+  let response = String::from_utf8(output.stdout).context(error::ClaudeStdout)?;
 
   let outgoing_message_id = format!("<{}@lab.rodarmor.com>", Uuid::new_v4());
 
@@ -359,9 +361,10 @@ fn send_reply(
   let output = child.wait_with_output().context(error::SendmailWait)?;
 
   if !output.status.success() {
+    let stderr = String::from_utf8(output.stderr).context(error::SendmailStderr)?;
     return Err(Error::Sendmail {
       backtrace: Some(Backtrace::generate()),
-      stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+      stderr,
     });
   }
 

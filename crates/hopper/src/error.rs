@@ -14,6 +14,16 @@ pub(crate) enum Error {
     status: ExitStatus,
     stderr: String,
   },
+  #[snafu(display("claude stderr was not valid UTF-8"))]
+  ClaudeStderr {
+    backtrace: Option<Backtrace>,
+    source: FromUtf8Error,
+  },
+  #[snafu(display("claude stdout was not valid UTF-8"))]
+  ClaudeStdout {
+    backtrace: Option<Backtrace>,
+    source: FromUtf8Error,
+  },
   #[snafu(display("failed to write to claude stdin"))]
   ClaudeStdin {
     backtrace: Option<Backtrace>,
@@ -86,6 +96,11 @@ pub(crate) enum Error {
   Sendmail {
     backtrace: Option<Backtrace>,
     stderr: String,
+  },
+  #[snafu(display("sendmail stderr was not valid UTF-8"))]
+  SendmailStderr {
+    backtrace: Option<Backtrace>,
+    source: FromUtf8Error,
   },
   #[snafu(display("failed to spawn sendmail"))]
   SendmailSpawn {
