@@ -20,7 +20,8 @@
     useDHCP = true;
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 22 80 443 ];
+      allowedTCPPorts = [ 22 53 80 443 ];
+      allowedUDPPorts = [ 53 ];
     };
   };
 
@@ -74,6 +75,25 @@
           proxyWebsockets = true;
         };
       };
+    };
+
+    nsd = {
+      enable = true;
+      interfaces = [ "74.207.251.176" "2600:3c01::2000:41ff:fe8d:d2e1" ];
+      zones."tulip.farm.".data = ''
+        $ORIGIN tulip.farm.
+        $TTL 3600
+        @  IN  SOA lab.rodarmor.com. casey.rodarmor.com. (
+                 1          ; serial
+                 3600       ; refresh
+                 900        ; retry
+                 604800     ; expire
+                 3600       ; minimum
+               )
+        @  IN  NS   lab.rodarmor.com.
+        @  IN  A    74.207.251.176
+        @  IN  AAAA 2600:3c01::2000:41ff:fe8d:d2e1
+      '';
     };
 
     openssh = {
