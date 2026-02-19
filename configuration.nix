@@ -14,6 +14,7 @@
   };
 
   networking = {
+    hostName = "lab";
     dhcpcd.IPv6rs = false;
     tempAddresses = "disabled";
     useDHCP = true;
