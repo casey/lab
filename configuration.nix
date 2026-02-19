@@ -79,7 +79,7 @@
 
     nsd = {
       enable = true;
-      interfaces = [ "74.207.251.176" "2600:3c01::2000:41ff:fe8d:d2e1" ];
+      interfaces = [ "0.0.0.0" "::" ];
       zones."tulip.farm.".data = ''
         $ORIGIN tulip.farm.
         $TTL 3600
