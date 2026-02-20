@@ -26,10 +26,10 @@
 
   environment.systemPackages = with pkgs; [
     btop
-    delta
-    dig
     clang
     claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default
+    delta
+    dig
     eza
     git
     just
@@ -38,6 +38,7 @@
     nix-search
     python3
     rustup
+    tmux
     zsh
   ];
 
@@ -183,6 +184,7 @@
         shell = pkgs.zsh;
         openssh.authorizedKeys.keys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbSqH7DNg3/USFtrLG183EVmL7VH7v+92qMbRvlOpSy rodarmor@odin"
+          "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPfEZoEAvyIpoy5oUiWdw6sHpIBgBKYfxd4cCSEIlHLVCW0e2WchLDRoMqRNb+Skl4AIlyF+vuaFLBaL+eJFmZs= rodarmor@soft-focus"
         ];
       };
     };
