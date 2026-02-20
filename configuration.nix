@@ -192,5 +192,13 @@
 
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
 
+  home-manager.users.root = {
+    home.file.".claude/rules/lab.md".text = ''
+      This NixOS server is a sandbox for agents.
+    '';
+
+    home.stateVersion = "26.05";
+  };
+
   system.stateVersion = "26.05";
 }
