@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ claude-code, pkgs, ... }:
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -14,9 +14,10 @@
   };
 
   environment.systemPackages = with pkgs; [
-    vim
-    git
     btop
+    claude-code.packages.${pkgs.system}.default
+    git
+    vim
   ];
 
   networking = {
@@ -32,6 +33,8 @@
   };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  nixpkgs.config.allowUnfree = true;
 
   time.timeZone = "America/Los_Angeles";
 
