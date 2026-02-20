@@ -179,6 +179,7 @@
       };
       postfix.extraGroups = [ "opendkim" "acme" ];
       root = {
+        hashedPassword = "!";
         shell = pkgs.zsh;
         openssh.authorizedKeys.keys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbSqH7DNg3/USFtrLG183EVmL7VH7v+92qMbRvlOpSy rodarmor@odin"
