@@ -1,0 +1,25 @@
+$ORIGIN tulip.farm.
+
+$TTL 3600
+
+@ IN SOA lab.rodarmor.com. casey.rodarmor.com. (
+ 3      ; serial
+ 3600   ; refresh
+ 900    ; retry
+ 604800 ; expire
+ 3600   ; minimum
+)
+
+@ IN NS lab.rodarmor.com.
+
+@ IN A 74.207.251.176
+
+@ IN AAAA 2600:3c01::2000:41ff:fe8d:d2e1
+
+@ IN MX 10 tulip.farm.
+
+@ IN TXT "v=spf1 a mx -all"
+
+_dmarc IN TXT "v=DMARC1; p=reject; adkim=s; aspf=s"
+
+mail._domainkey IN  TXT  "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDKwM6orWZCvbV13j8K7CY3UpQm2DvGL407YQ5GDhWat8FcC3Vh/dRAxBW5ED2Nc3leOsOPck+3xJNAEqQAAMlhQk9hHNynsQHXLPAHrhMFpPKkjh/fiyYcBEzEJPjefdxuafNKYJf0qsJUS1t668Lu6tsX6IApI1UiJGPgxCVUVQIDAQAB"
