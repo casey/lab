@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -12,6 +12,12 @@
       device = "/dev/sda";
     };
   };
+
+  environment.systemPackages = with pkgs; [
+    vim
+    git
+    btop
+  ];
 
   networking = {
     hostName = "lab";
