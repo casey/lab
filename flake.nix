@@ -6,9 +6,11 @@
 
   outputs = { claude-code, nixpkgs, ... }: {
     nixosConfigurations.lab = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
       specialArgs = { inherit claude-code; };
-      modules = [ ./configuration.nix ];
+      modules = [
+        { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ./configuration.nix
+      ];
     };
   };
 }

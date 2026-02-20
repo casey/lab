@@ -13,11 +13,29 @@
     };
   };
 
+  environment.etc."claude-code/managed-settings.json" = {
+    text = builtins.toJSON {
+      permissions = {
+        defaultMode = "bypassPermissions";
+      };
+    };
+  };
+
+  environment.variables.IS_SANDBOX = "1";
+
   environment.systemPackages = with pkgs; [
     btop
-    claude-code.packages.${pkgs.system}.default
+    delta
+    clang
+    claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default
+    eza
     git
-    vim
+    just
+    neovim
+    nix-search
+    python3
+    rustup
+    zsh
   ];
 
   networking = {
@@ -32,9 +50,14 @@
     };
   };
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    warn-dirty = false;
+  };
 
   nixpkgs.config.allowUnfree = true;
+
+  programs.zsh.enable = true;
 
   time.timeZone = "America/Los_Angeles";
 
@@ -122,9 +145,12 @@
         group = "git";
         isSystemUser = true;
       };
-      root.openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbSqH7DNg3/USFtrLG183EVmL7VH7v+92qMbRvlOpSy rodarmor@odin"
-      ];
+      root = {
+        shell = pkgs.zsh;
+        openssh.authorizedKeys.keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbSqH7DNg3/USFtrLG183EVmL7VH7v+92qMbRvlOpSy rodarmor@odin"
+        ];
+      };
     };
 
     groups.git = {};
