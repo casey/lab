@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 log = "0.4"
+mail-builder = "0.4.4"
 mailparse = "0.15"
 snafu = "0.8"
 systemd-journal-logger = "2"

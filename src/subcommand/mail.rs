@@ -50,16 +50,25 @@ fn save_to_maildir(data: &[u8]) -> Result {
 }
 
 fn reply(message: &Message) -> Result {
-  let reply = format!(
-    "From: root@tulip.farm\r\nTo: {}\r\nSubject: {}\r\nIn-Reply-To: {}\r\nReferences: {}\r\n\r\n{}",
-    message.sender,
-    message.subject,
-    message.message_id,
-    message.references.join(" "),
-    message.body,
-  );
+  let reply = mail_builder::MessageBuilder::new()
+    .from("root@tulip.farm")
+    .to(message.sender.as_str())
+    .subject(&message.subject)
+    .in_reply_to(message.message_id.as_str())
+    .references(
+      message
+        .references
+        .iter()
+        .map(|r| r.as_str())
+        .collect::<Vec<_>>(),
+    )
+    .text_body(&message.body)
+    .write_to_vec()
+    .context(error::Io {
+      path: PathBuf::from("mail-builder"),
+    })?;
 
-  save_to_maildir(reply.as_bytes())?;
+  save_to_maildir(&reply)?;
 
   let mut child = Command::new("/run/wrappers/bin/sendmail")
     .arg("-t")
@@ -73,7 +82,7 @@ fn reply(message: &Message) -> Result {
     .stdin
     .take()
     .unwrap()
-    .write_all(reply.as_bytes())
+    .write_all(&reply)
     .context(error::Io {
       path: PathBuf::from("sendmail stdin"),
     })?;
