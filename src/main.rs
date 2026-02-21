@@ -1,7 +1,6 @@
 use {
   crate::{error::Error, subcommand::Subcommand},
   clap::Parser,
-  mailparse::MailHeaderMap,
   snafu::{ResultExt, Snafu},
   std::{
     fs,
@@ -13,6 +12,7 @@ use {
 };
 
 mod error;
+mod message;
 mod subcommand;
 
 type Result<T = (), E = Error> = std::result::Result<T, E>;

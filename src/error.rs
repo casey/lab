@@ -9,6 +9,10 @@ pub(crate) enum Error {
   MaildirSave { path: PathBuf, source: io::Error },
   #[snafu(display("failed to parse message"))]
   MailParse { source: mailparse::MailParseError },
+  #[snafu(display("message has no Message-ID header"))]
+  MissingMessageId,
+  #[snafu(display("message has no sender"))]
+  MissingSender,
   #[snafu(display("failed to read stdin"))]
   Stdin { source: io::Error },
   #[snafu(display("sendmail exited with {status}"))]
