@@ -1,4 +1,22 @@
 { claude-code, lib, pkgs, ... }:
+
+let
+  lab = pkgs.rustPlatform.buildRustPackage {
+    pname = "lab";
+    version = "0.0.0";
+    src = lib.fileset.toSource {
+      root = ./.;
+      fileset = lib.fileset.unions [
+        ./Cargo.toml
+        ./Cargo.lock
+        ./src
+      ];
+    };
+    cargoLock.lockFile = ./Cargo.lock;
+    nativeBuildInputs = [ pkgs.pkg-config ];
+    buildInputs = [ pkgs.systemd ];
+  };
+in
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -44,6 +62,7 @@
     eza
     gh
     git
+    jq
     just
     neomutt
     neovim
@@ -159,8 +178,21 @@
 
     postfix = {
       enable = true;
+      settings.master.lab = {
+        type = "unix";
+        privileged = true;
+        chroot = false;
+        maxproc = 1;
+        command = "pipe";
+        args = [
+          "flags=RX"
+          "user=lab:lab"
+          "argv=${lab}/bin/lab mail"
+        ];
+      };
       settings.main = {
-        authorized_submit_users = [ "root" ];
+        mailbox_transport = "lab";
+        authorized_submit_users = [ "root" "lab" ];
         myhostname = "tulip.farm";
         mydomain = "tulip.farm";
         mydestination = [ "tulip.farm" "localhost" ];
@@ -198,6 +230,10 @@
         group = "git";
         isSystemUser = true;
       };
+      lab = {
+        isSystemUser = true;
+        group = "lab";
+      };
       opendmarc = {
         isSystemUser = true;
         group = "opendmarc";
@@ -214,8 +250,13 @@
     };
 
     groups.git = {};
+    groups.lab = { members = [ "root" ]; };
     groups.opendmarc = {};
   };
+
+  system.activationScripts.lab-maildir = ''
+    install -d -o lab -g lab -m 0750 /var/lib/lab/mail /var/lib/lab/mail/cur /var/lib/lab/mail/new /var/lib/lab/mail/tmp
+  '';
 
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
 
