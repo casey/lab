@@ -3,10 +3,8 @@ use super::*;
 #[derive(Debug, Snafu)]
 #[snafu(context(suffix(false)), visibility(pub(crate)))]
 pub(crate) enum Error {
-  #[snafu(display("filesystem I/O error at `{}`", path.display()))]
+  #[snafu(display("I/O error at `{}`", path.display()))]
   FilesystemIo { path: PathBuf, source: io::Error },
-  #[snafu(display("failed to save to maildir at `{}`", path.display()))]
-  MaildirSave { path: PathBuf, source: io::Error },
   #[snafu(display("failed to parse message"))]
   MailParse { source: mailparse::MailParseError },
   #[snafu(display("message has no Message-ID header"))]
@@ -26,7 +24,7 @@ pub(crate) enum Error {
 impl Error {
   pub(crate) fn exit_code(&self) -> ExitCode {
     match self {
-      Self::MaildirSave { .. } => ExitCode::from(75),
+      Self::FilesystemIo { .. } => ExitCode::from(75),
       _ => ExitCode::FAILURE,
     }
   }

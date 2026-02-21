@@ -14,8 +14,7 @@ impl Message {
     let headers = parsed.get_headers();
 
     let sender = headers
-      .get_first_value("Reply-To")
-      .or_else(|| headers.get_first_value("From"))
+      .get_first_value("From")
       .and_then(|value| {
         let addr = if let Some(start) = value.find('<') {
           let end = value.find('>')?;

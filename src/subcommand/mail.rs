@@ -27,7 +27,7 @@ fn save_to_maildir(data: &[u8]) -> Result {
 
   for dir in ["cur", "new", "tmp"] {
     let path = maildir.join(dir);
-    fs::create_dir_all(&path).context(error::MaildirSave { path })?;
+    fs::create_dir_all(&path).context(error::FilesystemIo { path })?;
   }
 
   let timestamp = SystemTime::now()
@@ -39,9 +39,9 @@ fn save_to_maildir(data: &[u8]) -> Result {
   let tmp = maildir.join("tmp").join(&filename);
   let new = maildir.join("new").join(&filename);
 
-  fs::write(&tmp, data).context(error::MaildirSave { path: tmp.clone() })?;
+  fs::write(&tmp, data).context(error::FilesystemIo { path: tmp.clone() })?;
 
-  fs::rename(&tmp, &new).context(error::MaildirSave { path: new })?;
+  fs::rename(&tmp, &new).context(error::FilesystemIo { path: new })?;
 
   Ok(())
 }
@@ -57,7 +57,7 @@ fn reply(message: &Message) -> Result {
         .references
         .iter()
         .map(|r| r.as_str())
-        .collect::<Vec<_>>(),
+        .collect::<Vec<&str>>(),
     )
     .text_body(&message.body)
     .write_to_vec()
