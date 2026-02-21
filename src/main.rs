@@ -1,5 +1,5 @@
 use {
-  crate::{error::Error, subcommand::Subcommand},
+  crate::{error::Error, message::Message, subcommand::Subcommand},
   clap::Parser,
   mailparse::MailHeaderMap,
   snafu::{ResultExt, Snafu},

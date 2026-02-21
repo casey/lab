@@ -42,6 +42,7 @@ impl Message {
 
     let message_id = headers
       .get_first_value("Message-ID")
+      .map(|id| id.trim_start_matches('<').trim_end_matches('>').to_string())
       .ok_or(Error::MissingMessageId)?;
 
     let mut references = headers
@@ -49,8 +50,8 @@ impl Message {
       .map(|refs| {
         refs
           .split_whitespace()
-          .map(String::from)
-          .collect::<Vec<_>>()
+          .map(|r| r.trim_start_matches('<').trim_end_matches('>').to_string())
+          .collect::<Vec<String>>()
       })
       .unwrap_or_default();
 
@@ -108,6 +109,49 @@ mod tests {
   }
 
   #[test]
+  fn extract_body_multipart_html_first() {
+    let raw = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\
+            Content-Type: multipart/alternative; boundary=bound\r\n\r\n\
+            --bound\r\n\
+            Content-Type: text/html\r\n\r\n\
+            <p>baz</p>\r\n\
+            --bound\r\n\
+            Content-Type: text/plain\r\n\r\n\
+            baz\r\n\
+            --bound--\r\n";
+    let message = Message::parse(raw).unwrap();
+    assert_eq!(message.body, "baz\r\n");
+  }
+
+  #[test]
+  fn extract_body_multipart_no_text() {
+    let raw = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\
+            Content-Type: multipart/alternative; boundary=bound\r\n\r\n\
+            --bound\r\n\
+            Content-Type: text/html\r\n\r\n\
+            <p>baz</p>\r\n\
+            --bound--\r\n";
+    let message = Message::parse(raw).unwrap();
+    assert_eq!(message.body, "");
+  }
+
+  #[test]
+  fn extract_body_html_only() {
+    let raw = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\
+            Content-Type: text/html\r\n\r\n\
+            <p>baz</p>";
+    let message = Message::parse(raw).unwrap();
+    assert_eq!(message.body, "");
+  }
+
+  #[test]
+  fn sender_with_angle_brackets() {
+    let raw = b"From: Foo <foo@bar.com>\r\nMessage-ID: <foo@bar>\r\n\r\n";
+    let message = Message::parse(raw).unwrap();
+    assert_eq!(message.sender, "foo@bar.com");
+  }
+
+  #[test]
   fn subject() {
     #[track_caller]
     fn case(input: &[u8], expected: &str) {
@@ -151,13 +195,13 @@ mod tests {
     let raw = b"From: foo@bar.com\r\nMessage-ID: <baz@bar>\r\n\
                 References: <foo@bar> <bar@bar>\r\n\r\n";
     let message = Message::parse(raw).unwrap();
-    assert_eq!(message.references, ["<foo@bar>", "<bar@bar>", "<baz@bar>"]);
+    assert_eq!(message.references, ["foo@bar", "bar@bar", "baz@bar"]);
   }
 
   #[test]
   fn references_without_existing() {
     let raw = b"From: foo@bar.com\r\nMessage-ID: <baz@bar>\r\n\r\n";
     let message = Message::parse(raw).unwrap();
-    assert_eq!(message.references, ["<baz@bar>"]);
+    assert_eq!(message.references, ["baz@bar"]);
   }
 }

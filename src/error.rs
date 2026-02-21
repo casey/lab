@@ -17,6 +17,8 @@ pub(crate) enum Error {
   SendmailInvoke { source: io::Error },
   #[snafu(display("failed to write to sendmail stdin"))]
   SendmailStdin { source: io::Error },
+  #[snafu(display("failed to wait for sendmail"))]
+  SendmailWait { source: io::Error },
   #[snafu(display("failed to read stdin"))]
   Stdin { source: io::Error },
 }

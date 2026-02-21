@@ -187,7 +187,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=${lab}/bin/lab mail"
+          "argv=${lab}/bin/lab mail --dir /var/lib/lab/mail"
         ];
       };
       settings.main = {
