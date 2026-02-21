@@ -1,6 +1,7 @@
 use {
   crate::{error::Error, subcommand::Subcommand},
   clap::Parser,
+  mailparse::MailHeaderMap,
   snafu::{ResultExt, Snafu},
   std::{
     fs,
@@ -10,9 +11,6 @@ use {
     time::{SystemTime, UNIX_EPOCH},
   },
 };
-
-#[allow(unused_imports)]
-use mailparse::MailHeaderMap;
 
 mod error;
 mod message;
