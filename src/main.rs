@@ -11,6 +11,9 @@ use {
   },
 };
 
+#[allow(unused_imports)]
+use mailparse::MailHeaderMap;
+
 mod error;
 mod message;
 mod subcommand;

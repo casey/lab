@@ -1,7 +1,5 @@
 use super::*;
 
-use mailparse::MailHeaderMap;
-
 pub(crate) struct Message {
   pub(crate) sender: String,
   pub(crate) subject: String,
