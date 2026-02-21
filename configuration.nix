@@ -172,8 +172,16 @@
         smtpd_milters = "unix:/run/opendkim/opendkim.sock, unix:/run/opendmarc/opendmarc.sock";
         non_smtpd_milters = "unix:/run/opendkim/opendkim.sock";
         milter_default_action = "reject";
+        smtpd_client_restrictions = "permit_mynetworks, reject_unknown_reverse_client_hostname";
         smtpd_sender_restrictions = "permit_mynetworks, check_sender_access hash:/var/lib/postfix/conf/sender_access, reject";
         smtpd_recipient_restrictions = "permit_mynetworks, reject_unauth_destination, check_recipient_access hash:/var/lib/postfix/conf/recipient_access, reject";
+        smtpd_helo_required = "yes";
+        smtpd_helo_restrictions = "permit_mynetworks, reject_invalid_helo_hostname, reject_non_fqdn_helo_hostname";
+        disable_vrfy_command = "yes";
+        strict_rfc821_envelopes = "yes";
+        smtpd_tls_mandatory_protocols = ">=TLSv1.2";
+        smtpd_tls_mandatory_ciphers = "high";
+        tls_preempt_cipherlist = "yes";
       };
       mapFiles = {
         sender_access = pkgs.writeText "sender_access" "casey@rodarmor.com OK\n";
