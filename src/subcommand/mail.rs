@@ -26,9 +26,8 @@ fn save_to_maildir(data: &[u8]) -> Result {
   let maildir = Path::new(MAILDIR);
 
   for dir in ["cur", "new", "tmp"] {
-    fs::create_dir_all(maildir.join(dir)).context(error::MaildirSave {
-      path: maildir.to_path_buf(),
-    })?;
+    let path = maildir.join(dir);
+    fs::create_dir_all(&path).context(error::MaildirSave { path })?;
   }
 
   let timestamp = SystemTime::now()
@@ -37,14 +36,12 @@ fn save_to_maildir(data: &[u8]) -> Result {
     .as_nanos();
 
   let filename = format!("{timestamp}.lab.tulip.farm");
-  let tmp_path = maildir.join("tmp").join(&filename);
-  let new_path = maildir.join("new").join(&filename);
+  let tmp = maildir.join("tmp").join(&filename);
+  let new = maildir.join("new").join(&filename);
 
-  fs::write(&tmp_path, data).context(error::MaildirSave {
-    path: tmp_path.clone(),
-  })?;
+  fs::write(&tmp, data).context(error::MaildirSave { path: tmp.clone() })?;
 
-  fs::rename(&tmp_path, &new_path).context(error::MaildirSave { path: new_path })?;
+  fs::rename(&tmp, &new).context(error::MaildirSave { path: new })?;
 
   Ok(())
 }
@@ -64,9 +61,7 @@ fn reply(message: &Message) -> Result {
     )
     .text_body(&message.body)
     .write_to_vec()
-    .context(error::Io {
-      path: PathBuf::from("mail-builder"),
-    })?;
+    .expect("writing to Vec failed");
 
   save_to_maildir(&reply)?;
 
@@ -74,22 +69,16 @@ fn reply(message: &Message) -> Result {
     .arg("-t")
     .stdin(Stdio::piped())
     .spawn()
-    .context(error::Io {
-      path: PathBuf::from("/run/wrappers/bin/sendmail"),
-    })?;
+    .context(error::SendmailInvoke)?;
 
   child
     .stdin
     .take()
     .unwrap()
     .write_all(&reply)
-    .context(error::Io {
-      path: PathBuf::from("sendmail stdin"),
-    })?;
+    .context(error::SendmailStdin)?;
 
-  let status = child.wait().context(error::Io {
-    path: PathBuf::from("sendmail"),
-  })?;
+  let status = child.wait().context(error::SendmailInvoke)?;
 
   if !status.success() {
     return Err(Error::Sendmail { status });

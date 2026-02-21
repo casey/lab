@@ -3,8 +3,8 @@ use super::*;
 #[derive(Debug, Snafu)]
 #[snafu(context(suffix(false)), visibility(pub(crate)))]
 pub(crate) enum Error {
-  #[snafu(display("I/O error at `{}`", path.display()))]
-  Io { path: PathBuf, source: io::Error },
+  #[snafu(display("filesystem I/O error at `{}`", path.display()))]
+  FilesystemIo { path: PathBuf, source: io::Error },
   #[snafu(display("failed to save to maildir at `{}`", path.display()))]
   MaildirSave { path: PathBuf, source: io::Error },
   #[snafu(display("failed to parse message"))]
@@ -13,10 +13,14 @@ pub(crate) enum Error {
   MissingMessageId,
   #[snafu(display("message has no sender"))]
   MissingSender,
-  #[snafu(display("failed to read stdin"))]
-  Stdin { source: io::Error },
   #[snafu(display("sendmail exited with {status}"))]
   Sendmail { status: process::ExitStatus },
+  #[snafu(display("failed to invoke sendmail"))]
+  SendmailInvoke { source: io::Error },
+  #[snafu(display("failed to write to sendmail stdin"))]
+  SendmailStdin { source: io::Error },
+  #[snafu(display("failed to read stdin"))]
+  Stdin { source: io::Error },
 }
 
 impl Error {
