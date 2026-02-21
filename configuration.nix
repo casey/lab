@@ -22,6 +22,17 @@
     };
   };
 
+  environment.etc."opendmarc/opendmarc.conf".text = ''
+    AuthservID tulip.farm
+    TrustedAuthservIDs tulip.farm
+    Socket local:/run/opendmarc/opendmarc.sock
+    RejectFailures true
+    RequiredHeaders true
+    SPFIgnoreResults true
+    SPFSelfValidate true
+    Syslog true
+  '';
+
   environment.variables.IS_SANDBOX = "1";
 
   environment.systemPackages = with pkgs; [
@@ -31,6 +42,7 @@
     delta
     dig
     eza
+    gh
     git
     just
     neomutt
@@ -157,9 +169,9 @@
         smtpd_tls_key_file = "/var/lib/acme/tulip.farm/key.pem";
         smtpd_tls_security_level = "encrypt";
         smtp_tls_security_level = "verify";
-        smtpd_milters = "unix:/run/opendkim/opendkim.sock";
+        smtpd_milters = "unix:/run/opendkim/opendkim.sock, unix:/run/opendmarc/opendmarc.sock";
         non_smtpd_milters = "unix:/run/opendkim/opendkim.sock";
-        milter_default_action = "accept";
+        milter_default_action = "reject";
         smtpd_sender_restrictions = "permit_mynetworks, check_sender_access hash:/var/lib/postfix/conf/sender_access, reject";
         smtpd_recipient_restrictions = "permit_mynetworks, reject_unauth_destination, check_recipient_access hash:/var/lib/postfix/conf/recipient_access, reject";
       };
@@ -178,7 +190,11 @@
         group = "git";
         isSystemUser = true;
       };
-      postfix.extraGroups = [ "opendkim" "acme" ];
+      opendmarc = {
+        isSystemUser = true;
+        group = "opendmarc";
+      };
+      postfix.extraGroups = [ "opendkim" "opendmarc" "acme" ];
       root = {
         hashedPassword = "!";
         shell = pkgs.zsh;
@@ -190,9 +206,24 @@
     };
 
     groups.git = {};
+    groups.opendmarc = {};
   };
 
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
+
+  systemd.services.opendmarc = {
+    after = [ "network.target" "opendkim.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.opendmarc}/bin/opendmarc -f -l -c /etc/opendmarc/opendmarc.conf";
+      User = "opendmarc";
+      Group = "opendmarc";
+      RuntimeDirectory = "opendmarc";
+      RuntimeDirectoryMode = "0750";
+      UMask = "0007";
+    };
+  };
 
   home-manager.users.root = {
     home = {
