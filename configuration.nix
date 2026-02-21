@@ -254,10 +254,6 @@ in
     groups.opendmarc = {};
   };
 
-  system.activationScripts.lab-maildir = ''
-    install -d -o lab -g lab -m 0750 /var/lib/lab/mail /var/lib/lab/mail/cur /var/lib/lab/mail/new /var/lib/lab/mail/tmp
-  '';
-
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
 
   systemd.services.opendmarc = {

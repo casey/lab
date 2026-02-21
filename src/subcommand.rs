@@ -1,6 +1,6 @@
 mod mail;
 
-use crate::Error;
+use super::*;
 
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
@@ -8,7 +8,7 @@ pub(crate) enum Subcommand {
 }
 
 impl Subcommand {
-  pub(crate) fn run(self) -> Result<(), Error> {
+  pub(crate) fn run(self) -> Result {
     match self {
       Self::Mail(mail) => mail.run(),
     }

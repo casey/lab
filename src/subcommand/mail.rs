@@ -1,39 +1,107 @@
-use crate::error::{self, Error};
-use log::error;
-use mailparse::MailHeaderMap;
-use snafu::ResultExt;
-use std::fs;
-use std::io::{self, Read, Write};
-use std::path::Path;
-use std::process::{Command, Stdio};
-use std::time::{SystemTime, UNIX_EPOCH};
+use super::*;
+
+const MAILDIR: &str = "/var/lib/lab/mail";
 
 #[derive(clap::Args)]
 pub(crate) struct Mail;
 
 impl Mail {
-  pub(crate) fn run(self) -> Result<(), Error> {
-    let mut message = Vec::new();
-    io::stdin()
-      .read_to_end(&mut message)
-      .context(error::Stdin)?;
+  pub(crate) fn run(self) -> Result {
+    let mut raw = Vec::new();
+    io::stdin().read_to_end(&mut raw).context(error::Stdin)?;
 
-    save_to_maildir(&message)?;
+    let message = Message::parse(&raw)?;
 
-    if let Err(e) = parse_and_reply(&message) {
-      error!("failed to parse/reply: {e}");
+    save_to_maildir(&raw)?;
+
+    if let Err(e) = reply(&message) {
+      log::error!("failed to reply: {e}");
     }
 
     Ok(())
   }
 }
 
-fn save_to_maildir(message: &[u8]) -> Result<(), Error> {
-  let maildir = Path::new("/var/lib/lab/mail");
+struct Message {
+  sender: Option<String>,
+  subject: String,
+  body: String,
+  message_id: Option<String>,
+  references: Option<String>,
+}
+
+impl Message {
+  fn parse(raw: &[u8]) -> Result<Self> {
+    let parsed = mailparse::parse_mail(raw).context(error::MailParse)?;
+    let headers = parsed.get_headers();
+
+    let sender = headers
+      .get_first_value("Reply-To")
+      .or_else(|| headers.get_first_value("From"))
+      .and_then(|value| {
+        let addr = if let Some(start) = value.find('<') {
+          let end = value.find('>')?;
+          value[start + 1..end].to_string()
+        } else {
+          value.trim().to_string()
+        };
+
+        if addr.is_empty() { None } else { Some(addr) }
+      });
+
+    let subject = {
+      let raw = headers.get_first_value("Subject");
+      match raw.as_deref() {
+        None => String::from("Re:"),
+        Some(s) if s.starts_with("Re:") || s.starts_with("re:") || s.starts_with("RE:") => {
+          s.to_string()
+        }
+        Some(s) => format!("Re: {s}"),
+      }
+    };
+
+    let body = Self::extract_body(&parsed).unwrap_or_default();
+
+    let message_id = headers.get_first_value("Message-ID");
+
+    let references = message_id
+      .as_ref()
+      .map(|id| match headers.get_first_value("References") {
+        Some(refs) => format!("{refs} {id}"),
+        None => id.clone(),
+      });
+
+    Ok(Self {
+      sender,
+      subject,
+      body,
+      message_id,
+      references,
+    })
+  }
+
+  fn extract_body(parsed: &mailparse::ParsedMail) -> Option<String> {
+    if parsed.ctype.mimetype.starts_with("multipart/") {
+      for subpart in &parsed.subparts {
+        if let Some(body) = Self::extract_body(subpart) {
+          return Some(body);
+        }
+      }
+      None
+    } else if parsed.ctype.mimetype == "text/plain" {
+      parsed.get_body().ok()
+    } else {
+      None
+    }
+  }
+}
+
+fn save_to_maildir(data: &[u8]) -> Result {
+  let maildir = Path::new(MAILDIR);
 
   for dir in ["cur", "new", "tmp"] {
     fs::create_dir_all(maildir.join(dir)).context(error::MaildirSave {
-      path: maildir.display().to_string(),
+      path: maildir.to_path_buf(),
     })?;
   }
 
@@ -46,92 +114,44 @@ fn save_to_maildir(message: &[u8]) -> Result<(), Error> {
   let tmp_path = maildir.join("tmp").join(&filename);
   let new_path = maildir.join("new").join(&filename);
 
-  fs::write(&tmp_path, message).context(error::MaildirSave {
-    path: tmp_path.display().to_string(),
+  fs::write(&tmp_path, data).context(error::MaildirSave {
+    path: tmp_path.clone(),
   })?;
 
-  fs::rename(&tmp_path, &new_path).context(error::MaildirSave {
-    path: new_path.display().to_string(),
-  })?;
+  fs::rename(&tmp_path, &new_path).context(error::MaildirSave { path: new_path })?;
 
   Ok(())
 }
 
-fn extract_sender(parsed: &mailparse::ParsedMail) -> Option<String> {
-  let headers = parsed.get_headers();
-
-  headers
-    .get_first_value("Reply-To")
-    .or_else(|| headers.get_first_value("From"))
-    .and_then(|value| {
-      let addr = if let Some(start) = value.find('<') {
-        let end = value.find('>')?;
-        value[start + 1..end].to_string()
-      } else {
-        value.trim().to_string()
-      };
-
-      if addr.is_empty() { None } else { Some(addr) }
-    })
-}
-
-fn extract_body(parsed: &mailparse::ParsedMail) -> Option<String> {
-  if parsed.ctype.mimetype.starts_with("multipart/") {
-    for subpart in &parsed.subparts {
-      if let Some(body) = extract_body(subpart) {
-        return Some(body);
-      }
-    }
-    None
-  } else if parsed.ctype.mimetype == "text/plain" {
-    parsed.get_body().ok()
-  } else {
-    None
-  }
-}
-
-fn reply_subject(subject: Option<&str>) -> String {
-  match subject {
-    None => String::from("Re:"),
-    Some(s) if s.starts_with("Re:") || s.starts_with("re:") || s.starts_with("RE:") => {
-      s.to_string()
-    }
-    Some(s) => format!("Re: {s}"),
-  }
-}
-
-fn parse_and_reply(message: &[u8]) -> Result<(), Error> {
-  let parsed = mailparse::parse_mail(message).context(error::MailParse)?;
-
-  let sender = match extract_sender(&parsed) {
+fn reply(message: &Message) -> Result {
+  let sender = match &message.sender {
     Some(sender) => sender,
     None => return Ok(()),
   };
 
-  let headers = parsed.get_headers();
-  let subject = reply_subject(headers.get_first_value("Subject").as_deref());
-  let body = extract_body(&parsed).unwrap_or_default();
+  let mut reply = format!(
+    "From: root@tulip.farm\r\nTo: {sender}\r\nSubject: {}\r\n",
+    message.subject
+  );
 
-  let mut reply = format!("From: root@tulip.farm\r\nTo: {sender}\r\nSubject: {subject}\r\n");
-
-  if let Some(message_id) = headers.get_first_value("Message-ID") {
+  if let Some(message_id) = &message.message_id {
     reply.push_str(&format!("In-Reply-To: {message_id}\r\n"));
+  }
 
-    let references = match headers.get_first_value("References") {
-      Some(refs) => format!("{refs} {message_id}"),
-      None => message_id,
-    };
+  if let Some(references) = &message.references {
     reply.push_str(&format!("References: {references}\r\n"));
   }
 
-  reply.push_str(&format!("\r\n{body}"));
+  reply.push_str(&format!("\r\n{}", message.body));
+
+  save_to_maildir(reply.as_bytes())?;
 
   let mut child = Command::new("/run/wrappers/bin/sendmail")
     .arg("-t")
     .stdin(Stdio::piped())
     .spawn()
     .context(error::Io {
-      path: String::from("/run/wrappers/bin/sendmail"),
+      path: PathBuf::from("/run/wrappers/bin/sendmail"),
     })?;
 
   child
@@ -140,11 +160,11 @@ fn parse_and_reply(message: &[u8]) -> Result<(), Error> {
     .unwrap()
     .write_all(reply.as_bytes())
     .context(error::Io {
-      path: String::from("sendmail stdin"),
+      path: PathBuf::from("sendmail stdin"),
     })?;
 
   let status = child.wait().context(error::Io {
-    path: String::from("sendmail"),
+    path: PathBuf::from("sendmail"),
   })?;
 
   if !status.success() {
@@ -160,14 +180,15 @@ mod tests {
 
   #[test]
   fn extract_body_plain_text() {
-    let message = b"From: foo@bar.com\r\nContent-Type: text/plain\r\n\r\nbaz";
-    let parsed = mailparse::parse_mail(message).unwrap();
-    assert_eq!(extract_body(&parsed).unwrap(), "baz");
+    let parsed =
+      mailparse::parse_mail(b"From: foo@bar.com\r\nContent-Type: text/plain\r\n\r\nbaz").unwrap();
+    assert_eq!(Message::extract_body(&parsed).unwrap(), "baz");
   }
 
   #[test]
   fn extract_body_multipart_alternative() {
-    let message = b"From: foo@bar.com\r\n\
+    let parsed = mailparse::parse_mail(
+      b"From: foo@bar.com\r\n\
             Content-Type: multipart/alternative; boundary=bound\r\n\r\n\
             --bound\r\n\
             Content-Type: text/plain\r\n\r\n\
@@ -175,29 +196,30 @@ mod tests {
             --bound\r\n\
             Content-Type: text/html\r\n\r\n\
             <p>baz</p>\r\n\
-            --bound--\r\n";
-    let parsed = mailparse::parse_mail(message).unwrap();
-    assert_eq!(extract_body(&parsed).unwrap(), "baz\r\n");
+            --bound--\r\n",
+    )
+    .unwrap();
+    assert_eq!(Message::extract_body(&parsed).unwrap(), "baz\r\n");
   }
 
   #[test]
   fn subject() {
     #[track_caller]
-    fn case(input: Option<&str>, expected: &str) {
-      assert_eq!(reply_subject(input), expected);
+    fn case(input: &[u8], expected: &str) {
+      let message = Message::parse(input).unwrap();
+      assert_eq!(message.subject, expected);
     }
 
-    case(None, "Re:");
-    case(Some("foo"), "Re: foo");
-    case(Some("Re: foo"), "Re: foo");
-    case(Some("re: foo"), "re: foo");
-    case(Some("RE: foo"), "RE: foo");
+    case(b"From: foo@bar.com\r\n\r\n", "Re:");
+    case(b"From: foo@bar.com\r\nSubject: foo\r\n\r\n", "Re: foo");
+    case(b"From: foo@bar.com\r\nSubject: Re: foo\r\n\r\n", "Re: foo");
+    case(b"From: foo@bar.com\r\nSubject: re: foo\r\n\r\n", "re: foo");
+    case(b"From: foo@bar.com\r\nSubject: RE: foo\r\n\r\n", "RE: foo");
   }
 
   #[test]
   fn empty_sender_no_reply() {
-    let message = b"From: \r\nContent-Type: text/plain\r\n\r\nbaz";
-    let parsed = mailparse::parse_mail(message).unwrap();
-    assert!(extract_sender(&parsed).is_none());
+    let message = Message::parse(b"From: \r\nContent-Type: text/plain\r\n\r\nbaz").unwrap();
+    assert!(message.sender.is_none());
   }
 }

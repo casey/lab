@@ -1,11 +1,21 @@
-use crate::subcommand::Subcommand;
-use clap::Parser;
-use std::process::ExitCode;
+use {
+  crate::{error::Error, subcommand::Subcommand},
+  clap::Parser,
+  mailparse::MailHeaderMap,
+  snafu::{ResultExt, Snafu},
+  std::{
+    fs,
+    io::{self, Read, Write},
+    path::{Path, PathBuf},
+    process::{self, Command, ExitCode, Stdio},
+    time::{SystemTime, UNIX_EPOCH},
+  },
+};
 
 mod error;
 mod subcommand;
 
-use error::Error;
+type Result<T = (), E = Error> = std::result::Result<T, E>;
 
 #[derive(Parser)]
 struct Arguments {
