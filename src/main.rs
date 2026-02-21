@@ -25,12 +25,10 @@ struct Arguments {
 }
 
 fn main() -> ExitCode {
-  if let Err(err) = systemd_journal_logger::JournalLog::new().map(|l| l.install()) {
-    eprintln!("error: failed to initialize logger: {err}");
-    return ExitCode::FAILURE;
+  if let Ok(logger) = systemd_journal_logger::JournalLog::new() {
+    let _ = logger.install();
+    log::set_max_level(log::LevelFilter::Info);
   }
-
-  log::set_max_level(log::LevelFilter::Info);
 
   if let Err(err) = Arguments::parse().subcommand.run() {
     eprintln!("error: {err}");

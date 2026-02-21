@@ -1,14 +1,22 @@
 use super::*;
 
-const TRUE: &str = "/run/current-system/sw/bin/true";
-const FALSE: &str = "/run/current-system/sw/bin/false";
+fn find_in_path(name: &str) -> String {
+  for dir in std::env::var("PATH").unwrap().split(':') {
+    let path = std::path::Path::new(dir).join(name);
+    if path.exists() {
+      return path.to_str().unwrap().to_string();
+    }
+  }
+  panic!("could not find `{name}` in PATH");
+}
 
 #[test]
 fn missing_sender() {
+  let sendmail = find_in_path("true");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
-    .args(["mail", "--dir", &dir, "--sendmail", TRUE])
+    .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
     .stdin(b"From: \r\nMessage-ID: <foo@bar>\r\nContent-Type: text/plain\r\n\r\nbaz")
     .stderr("error: message has no sender\n")
     .failure();
@@ -16,10 +24,11 @@ fn missing_sender() {
 
 #[test]
 fn missing_message_id() {
+  let sendmail = find_in_path("true");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
-    .args(["mail", "--dir", &dir, "--sendmail", TRUE])
+    .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nContent-Type: text/plain\r\n\r\nbaz")
     .stderr("error: message has no Message-ID header\n")
     .failure();
@@ -51,11 +60,12 @@ fn dir_required() {
 
 #[test]
 fn saves_incoming_and_reply() {
+  let sendmail = find_in_path("true");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   let input = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nContent-Type: text/plain\r\n\r\nbaz";
   let test = test
-    .args(["mail", "--dir", &dir, "--sendmail", TRUE])
+    .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
     .stdin(input)
     .success();
 
@@ -88,10 +98,11 @@ fn saves_incoming_and_reply() {
 
 #[test]
 fn creates_maildir_subdirs() {
+  let sendmail = find_in_path("true");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   let test = test
-    .args(["mail", "--dir", &dir, "--sendmail", TRUE])
+    .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
     .success();
 
@@ -102,10 +113,11 @@ fn creates_maildir_subdirs() {
 
 #[test]
 fn sendmail_failure() {
+  let sendmail = find_in_path("false");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
-    .args(["mail", "--dir", &dir, "--sendmail", FALSE])
+    .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
     .stderr_regex("error: sendmail exited with .*")
     .failure();
@@ -124,8 +136,9 @@ fn sendmail_not_found() {
 
 #[test]
 fn unwritable_dir() {
+  let sendmail = find_in_path("true");
   Test::new()
-    .args(["mail", "--dir", "/proc/foo", "--sendmail", TRUE])
+    .args(["mail", "--dir", "/proc/foo", "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
     .stderr_regex("error: I/O error at `/proc/foo/cur`\n.*")
     .status(75);
