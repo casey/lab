@@ -2,12 +2,13 @@ use {
   crate::{error::Error, message::Message, subcommand::Subcommand},
   clap::Parser,
   mailparse::MailHeaderMap,
+  redb::ReadableDatabase,
   snafu::{ResultExt, Snafu},
   std::{
     fs,
     io::{self, Read},
     path::{Path, PathBuf},
-    process::ExitCode,
+    process::{self, Command, ExitCode},
     time::{SystemTime, UNIX_EPOCH},
   },
 };
@@ -35,7 +36,7 @@ fn main() -> ExitCode {
     for (i, source) in snafu::CleanedErrorText::new(&err).skip(1).enumerate() {
       eprintln!("  {}: {}", i, source.1);
     }
-    err.exit_code()
+    ExitCode::FAILURE
   } else {
     ExitCode::SUCCESS
   }

@@ -21,13 +21,28 @@ pub(crate) enum Error {
   },
   #[snafu(display("failed to read stdin"))]
   Stdin { source: io::Error },
-}
-
-impl Error {
-  pub(crate) fn exit_code(&self) -> ExitCode {
-    match self {
-      Self::FilesystemIo { .. } => ExitCode::from(75),
-      _ => ExitCode::FAILURE,
-    }
-  }
+  #[snafu(display("failed to open database at `{}`", path.display()))]
+  DatabaseOpen {
+    path: PathBuf,
+    source: redb::DatabaseError,
+  },
+  #[snafu(display("database transaction error"))]
+  DatabaseTransaction { source: redb::TransactionError },
+  #[snafu(display("database commit error"))]
+  DatabaseCommit { source: redb::CommitError },
+  #[snafu(display("database table error"))]
+  DatabaseTable { source: redb::TableError },
+  #[snafu(display("database storage error"))]
+  DatabaseStorage { source: redb::StorageError },
+  #[snafu(display("failed to invoke agent"))]
+  AgentInvocation { source: io::Error },
+  #[snafu(display("agent exited with {status}\n{stderr}"))]
+  AgentFailed {
+    status: process::ExitStatus,
+    stderr: String,
+  },
+  #[snafu(display("agent output is not valid UTF-8"))]
+  AgentOutput { source: std::string::FromUtf8Error },
+  #[snafu(display("failed to create session directory at `{}`", path.display()))]
+  SessionDir { path: PathBuf, source: io::Error },
 }
