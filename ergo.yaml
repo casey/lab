@@ -1,0 +1,18 @@
+network:
+    name: lab
+
+server:
+    name: tulip.farm
+    listeners:
+        ":6697":
+            tls:
+                cert: /var/lib/acme/tulip.farm/fullchain.pem
+                key: /var/lib/acme/tulip.farm/key.pem
+    sts:
+        enabled: true
+
+accounts:
+    registration:
+        enabled: false
+    require-sasl:
+        enabled: true
