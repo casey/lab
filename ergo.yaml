@@ -31,11 +31,33 @@ limits:
     max-bytes: 4096
     max-lines: 100
 
+oper-classes:
+  admin:
+    capabilities:
+      - "kill"
+      - "ban"
+      - "nofakelag"
+      - "relaymsg"
+      - "vhosts"
+      - "sajoin"
+      - "samode"
+      - "snomasks"
+      - "roleplay"
+      - "rehash"
+      - "accreg"
+      - "chanreg"
+      - "history"
+      - "defcon"
+      - "massmessage"
+      - "metadata"
+
 opers:
   admin:
-    password: "$2a$04$vS9ZFqJtMroWuqHvec.b1.iK.OmAbkptKf.A8wJmKZqYAi2CEvHg2"
+    class: admin
+    password: "$2a$04$vDn27WG3XnLWD1EWE5llhOXXhd3iy/2vQLTkEvsveDG6kx.SNAqp2"
 
 accounts:
+  authentication-enabled: true
   registration:
     enabled: false
   require-sasl:
