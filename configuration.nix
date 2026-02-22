@@ -61,6 +61,8 @@ in
     claude
     delta
     dig
+    erdtree
+    ergochat
     eza
     gh
     git
@@ -73,6 +75,7 @@ in
     ripgrep
     rustup
     tmux
+    tree
     zsh
   ];
 
@@ -83,7 +86,7 @@ in
     useDHCP = true;
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 22 25 53 80 443 ];
+      allowedTCPPorts = [ 22 25 53 80 443 6697 ];
       allowedUDPPorts = [ 53 ];
     };
   };
@@ -101,6 +104,7 @@ in
 
   security.acme = {
     acceptTerms = true;
+    certs."tulip.farm".reloadServices = [ "ergo" "postfix" ];
     defaults.email = "casey@rodarmor.com";
   };
 
@@ -254,6 +258,11 @@ in
         isSystemUser = true;
         group = "opendmarc";
       };
+      ergo = {
+        isSystemUser = true;
+        group = "ergo";
+        extraGroups = [ "nginx" ];
+      };
       postfix.extraGroups = [ "opendkim" "opendmarc" "acme" ];
       root = {
         hashedPassword = "!";
@@ -265,9 +274,24 @@ in
       };
     };
 
-    groups.git = {};
-    groups.lab = { members = [ "root" ]; };
-    groups.opendmarc = {};
+    groups ={
+      ergo = {};
+      git = {};
+      lab = { members = [ "root" ]; };
+      opendmarc = {};
+    };
+  };
+
+  systemd.services.ergo = {
+    after = [ "network.target" "acme-tulip.farm.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.ergochat}/bin/ergo run --conf ${./ergo.yaml}";
+      WorkingDirectory = "/var/lib/ergo";
+      User = "ergo";
+      Group = "ergo";
+      StateDirectory = "ergo";
+    };
   };
 
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
