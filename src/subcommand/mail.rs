@@ -12,7 +12,7 @@ pub(crate) struct Mail {
   db: PathBuf,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
-  #[arg(long, default_value = "sudo")]
+  #[arg(long, default_value = "/run/wrappers/bin/sudo")]
   sudo: PathBuf,
   #[arg(long, default_value = "/var/lib/lab/sessions")]
   session_dir: PathBuf,
