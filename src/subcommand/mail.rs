@@ -52,7 +52,7 @@ impl Mail {
     Ok(())
   }
 
-  fn resolve_session(&self, message: &Message) -> Result<String> {
+  fn resolve_session(&self, message: &Message) -> Result<(String, bool)> {
     let db = redb::Database::create(&self.db).context(error::DatabaseOpen {
       path: self.db.clone(),
     })?;
@@ -60,7 +60,7 @@ impl Mail {
     let read_txn = db.begin_read().context(error::DatabaseTransaction)?;
     let table = read_txn.open_table(THREADS);
 
-    let session = match table {
+    let existing = match table {
       Ok(table) => {
         let mut found = None;
 
@@ -88,7 +88,8 @@ impl Mail {
 
     drop(read_txn);
 
-    let session = session.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
+    let resume = existing.is_some();
+    let session = existing.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
 
     let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
     {
@@ -101,22 +102,30 @@ impl Mail {
     }
     write_txn.commit().context(error::DatabaseCommit)?;
 
-    Ok(session)
+    Ok((session, resume))
   }
 
-  fn invoke_agent(&self, session: &str, body: &str) -> Result<String> {
+  fn invoke_agent(&self, session: &str, resume: bool, body: &str) -> Result<String> {
     let session_dir = self.session_dir.join(session);
 
     fs::create_dir_all(&session_dir).context(error::SessionDir {
       path: session_dir.clone(),
     })?;
 
-    let output = Command::new(&self.claude)
-      .arg("-p")
-      .arg("--session-id")
-      .arg(session)
-      .arg("--append-system-prompt")
-      .arg(format!("Your session ID is {session}."))
+    let mut command = Command::new(&self.claude);
+    command.arg("-p");
+
+    if resume {
+      command.arg("--resume").arg(session);
+    } else {
+      command
+        .arg("--session-id")
+        .arg(session)
+        .arg("--append-system-prompt")
+        .arg(format!("Your session ID is {session}."));
+    }
+
+    let output = command
       .stdin(process::Stdio::piped())
       .stdout(process::Stdio::piped())
       .stderr(process::Stdio::piped())
@@ -149,9 +158,9 @@ impl Mail {
   }
 
   fn reply(&self, message: &Message) -> Result {
-    let session = self.resolve_session(message)?;
+    let (session, resume) = self.resolve_session(message)?;
 
-    let response = self.invoke_agent(&session, &message.body)?;
+    let response = self.invoke_agent(&session, resume, &message.body)?;
 
     let html = Self::markdown_to_html(&response);
 
