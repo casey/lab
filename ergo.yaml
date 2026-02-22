@@ -3,6 +3,7 @@ network:
 
 server:
   name: tulip.farm
+  max-line-len: 2048
   listeners:
     ":6697":
       tls:
@@ -28,7 +29,7 @@ limits:
   chan-list-modes: 100
   registration-messages: 1024
   multiline:
-    max-bytes: 4096
+    max-bytes: 65536
     max-lines: 100
 
 oper-classes:
