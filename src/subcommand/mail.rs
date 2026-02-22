@@ -66,6 +66,8 @@ impl Mail {
     let mut child = Command::new(&self.sendmail)
       .arg("-t")
       .stdin(Stdio::piped())
+      .stdout(Stdio::null())
+      .stderr(Stdio::null())
       .spawn()
       .context(error::SendmailInvoke)?;
 
