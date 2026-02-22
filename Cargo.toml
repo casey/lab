@@ -6,6 +6,7 @@ autotests = false
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+lettre = { version = "0.11.19", default-features = false, features = ["sendmail-transport"] }
 log = "0.4"
 mail-builder = "0.4.4"
 mailparse = "0.15"

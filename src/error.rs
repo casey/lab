@@ -11,14 +11,14 @@ pub(crate) enum Error {
   MissingMessageId,
   #[snafu(display("message has no sender"))]
   MissingSender,
-  #[snafu(display("sendmail exited with {status}"))]
-  Sendmail { status: process::ExitStatus },
-  #[snafu(display("failed to invoke sendmail"))]
-  SendmailInvoke { source: io::Error },
-  #[snafu(display("failed to write to sendmail stdin"))]
-  SendmailStdin { source: io::Error },
-  #[snafu(display("failed to wait for sendmail"))]
-  SendmailWait { source: io::Error },
+  #[snafu(display("invalid recipient address"))]
+  Address {
+    source: lettre::address::AddressError,
+  },
+  #[snafu(display("failed to send reply"))]
+  Send {
+    source: lettre::transport::sendmail::Error,
+  },
   #[snafu(display("failed to read stdin"))]
   Stdin { source: io::Error },
 }

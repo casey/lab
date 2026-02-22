@@ -63,26 +63,15 @@ impl Mail {
 
     Self::save_to_maildir(&self.dir, &reply)?;
 
-    let mut child = Command::new(&self.sendmail)
-      .arg("-t")
-      .stdin(Stdio::piped())
-      .stdout(Stdio::null())
-      .stderr(Stdio::null())
-      .spawn()
-      .context(error::SendmailInvoke)?;
+    let envelope = lettre::address::Envelope::new(
+      Some("root@tulip.farm".parse().unwrap()),
+      vec![message.sender.parse().context(error::Address)?],
+    )
+    .unwrap();
 
-    child
-      .stdin
-      .take()
-      .unwrap()
-      .write_all(&reply)
-      .context(error::SendmailStdin)?;
+    let transport = lettre::SendmailTransport::new_with_command(&self.sendmail);
 
-    let status = child.wait().context(error::SendmailWait)?;
-
-    if !status.success() {
-      return Err(Error::Sendmail { status });
-    }
+    lettre::Transport::send_raw(&transport, &envelope, &reply).context(error::Send)?;
 
     Ok(())
   }
