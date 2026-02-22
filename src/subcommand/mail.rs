@@ -125,6 +125,7 @@ impl Mail {
       .stderr(process::Stdio::piped())
       .current_dir(&session_dir)
       .env("HOME", "/root")
+      .env("IS_SANDBOX", "1")
       .spawn()
       .and_then(|mut child| {
         use io::Write;
