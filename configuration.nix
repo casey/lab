@@ -201,7 +201,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=/run/wrappers/bin/sudo IS_SANDBOX=1 ${lab}/bin/lab mail --dir /var/lib/lab/mail --db /var/lib/lab/database.redb --claude ${claude}/bin/claude"
+          "argv=/run/wrappers/bin/sudo IS_SANDBOX=1 ${lab}/bin/lab mail --dir /root/mail --db /root/.lab.redb --claude ${claude}/bin/claude"
         ];
       };
       settings.main = {
@@ -268,10 +268,6 @@ in
     groups.lab = { members = [ "root" ]; };
     groups.opendmarc = {};
   };
-
-  systemd.tmpfiles.rules = [
-    "d /var/lib/lab 0750 lab lab -"
-  ];
 
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
 

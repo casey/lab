@@ -1,4 +1,4 @@
-use {super::*, redb::ReadableDatabase};
+use super::*;
 
 const THREADS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("threads");
 
@@ -12,7 +12,7 @@ pub(crate) struct Mail {
   db: PathBuf,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
-  #[arg(long, default_value = "/var/lib/lab/sessions")]
+  #[arg(long, default_value = "/root/sessions")]
   session_dir: PathBuf,
 }
 

@@ -2,6 +2,7 @@ use {
   crate::{error::Error, message::Message, subcommand::Subcommand},
   clap::Parser,
   mailparse::MailHeaderMap,
+  redb::ReadableDatabase,
   snafu::{ResultExt, Snafu},
   std::{
     fs,
