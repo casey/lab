@@ -62,3 +62,42 @@ accounts:
     enabled: false
   require-sasl:
     enabled: true
+  nick-reservation:
+    enabled: true
+    method: strict
+    force-nick-equals-account: true
+  multiclient:
+    enabled: true
+    allowed-by-default: true
+    always-on: "enabled"
+    auto-away: "enabled"
+
+history:
+  enabled: true
+  channel-length: 4096
+  client-length: 512
+  autoresize-window: 30d
+  autoreplay-on-join: 0
+  chathistory-maxmessages: 1000
+  znc-maxmessages: 2048
+  restrictions:
+    expire-time: 0
+    query-cutoff: none
+    grace-period: 1h
+  retention:
+    allow-individual-delete: true
+    enable-account-indexing: false
+  tagmsg-storage:
+    default: false
+    whitelist:
+      - "+draft/react"
+      - "+react"
+
+metadata:
+  enabled: true
+  max-subs: 100
+  max-keys: 100
+  client-throttle:
+    enabled: true
+    duration: 2m
+    max-attempts: 10

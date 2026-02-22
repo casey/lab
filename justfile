@@ -8,3 +8,6 @@ ci: forbid
   cargo lclippy --workspace --all-targets -- --deny warnings
   cargo fmt --all -- --check
   cargo ltest --workspace -- --include-ignored
+
+rebuild:
+  nixos-rebuild switch
