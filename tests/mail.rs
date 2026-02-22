@@ -415,6 +415,53 @@ fn markdown_conversion() {
 }
 
 #[test]
+fn markdown_table() {
+  let test = Test::new();
+  let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
+  let claude = write_claude(
+    test.path(),
+    "#!/bin/sh\ncat > /dev/null\nprintf '| foo | bar |\\n| --- | --- |\\n| baz | qux |\\n'\n",
+  );
+  let dir = test.path().to_str().unwrap().to_string();
+  let db = test.path().join("db.redb");
+  let db_str = db.to_str().unwrap();
+  let sessions = test.path().join("sessions");
+  let sessions_str = sessions.to_str().unwrap();
+  let input = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nContent-Type: text/plain\r\n\r\nbaz";
+  let test = test
+    .args([
+      "mail",
+      "--dir",
+      &dir,
+      "--sendmail",
+      &sendmail,
+      "--db",
+      db_str,
+      "--claude",
+      &claude,
+      "--session-dir",
+      sessions_str,
+    ])
+    .stdin(input)
+    .success();
+
+  let new_dir = test.path().join("new");
+  let files = std::fs::read_dir(&new_dir)
+    .unwrap()
+    .map(|e| e.unwrap().path())
+    .collect::<Vec<_>>();
+
+  let reply = files
+    .iter()
+    .find(|f| std::fs::read(f).unwrap() != input)
+    .expect("reply not found");
+  let reply_str = std::fs::read_to_string(reply).unwrap();
+
+  assert!(reply_str.contains("<table>"), "missing table HTML");
+  assert!(reply_str.contains("<td>baz</td>"), "missing table cell");
+}
+
+#[test]
 fn agent_failure() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");

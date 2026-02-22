@@ -70,6 +70,7 @@ in
     neovim
     nix-search
     python3
+    ripgrep
     rustup
     tmux
     zsh
