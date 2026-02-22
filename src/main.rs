@@ -9,7 +9,7 @@ use {
     io::{self, Read},
     path::{Path, PathBuf},
     process::{self, Command, ExitCode},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
   },
 };
 

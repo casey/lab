@@ -71,6 +71,7 @@ in
     neomutt
     neovim
     nix-search
+    openssl
     python3
     ripgrep
     rustup
@@ -282,6 +283,11 @@ in
     };
   };
 
+  system.activationScripts.secrets = ''
+    mkdir -p /root/secrets
+    chmod 700 /root/secrets
+  '';
+
   systemd.services.ergo = {
     after = [ "network.target" "acme-tulip.farm.service" ];
     wantedBy = [ "multi-user.target" ];
@@ -291,6 +297,16 @@ in
       User = "ergo";
       Group = "ergo";
       StateDirectory = "ergo";
+    };
+  };
+
+  systemd.services.lab-chat = {
+    after = [ "network.target" "ergo.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${lab}/bin/lab chat --db /root/.lab-chat.redb --claude ${claude}/bin/claude";
+      Restart = "always";
+      RestartSec = 5;
     };
   };
 

@@ -8,6 +8,7 @@ use {
   },
 };
 
+mod chat;
 mod expected;
 mod mail;
 mod test;

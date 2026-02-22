@@ -31,6 +31,10 @@ limits:
     max-bytes: 4096
     max-lines: 100
 
+opers:
+  admin:
+    password: "$2a$04$vS9ZFqJtMroWuqHvec.b1.iK.OmAbkptKf.A8wJmKZqYAi2CEvHg2"
+
 accounts:
   registration:
     enabled: false
