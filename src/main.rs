@@ -7,7 +7,7 @@ use {
     fs,
     io::{self, Read},
     path::{Path, PathBuf},
-    process::ExitCode,
+    process::{self, Command, ExitCode},
     time::{SystemTime, UNIX_EPOCH},
   },
 };

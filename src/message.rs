@@ -5,6 +5,7 @@ pub(crate) struct Message {
   pub(crate) subject: String,
   pub(crate) body: String,
   pub(crate) message_id: String,
+  pub(crate) in_reply_to: Option<String>,
   pub(crate) references: Vec<String>,
 }
 
@@ -45,6 +46,10 @@ impl Message {
       .map(|id| id.trim_start_matches('<').trim_end_matches('>').to_string())
       .ok_or(Error::MissingMessageId)?;
 
+    let in_reply_to = headers
+      .get_first_value("In-Reply-To")
+      .map(|id| id.trim_start_matches('<').trim_end_matches('>').to_string());
+
     let mut references = headers
       .get_first_value("References")
       .map(|refs| {
@@ -62,6 +67,7 @@ impl Message {
       subject,
       body,
       message_id,
+      in_reply_to,
       references,
     })
   }
@@ -188,6 +194,25 @@ mod tests {
   fn missing_message_id() {
     let raw = b"From: foo@bar.com\r\nContent-Type: text/plain\r\n\r\nbaz";
     assert!(Message::parse(raw).is_err());
+  }
+
+  #[test]
+  fn in_reply_to() {
+    #[track_caller]
+    fn case(input: &[u8], expected: Option<&str>) {
+      let message = Message::parse(input).unwrap();
+      assert_eq!(message.in_reply_to.as_deref(), expected);
+    }
+
+    case(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\n", None);
+    case(
+      b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nIn-Reply-To: <baz@bar>\r\n\r\n",
+      Some("baz@bar"),
+    );
+    case(
+      b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nIn-Reply-To: baz@bar\r\n\r\n",
+      Some("baz@bar"),
+    );
   }
 
   #[test]

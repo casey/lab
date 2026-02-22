@@ -1,6 +1,7 @@
 { claude-code, lib, pkgs, ... }:
 
 let
+  claude = claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default;
   lab = pkgs.rustPlatform.buildRustPackage {
     pname = "lab";
     version = "0.0.0";
@@ -57,7 +58,7 @@ in
   environment.systemPackages = with pkgs; [
     btop
     clang
-    claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default
+    claude
     delta
     dig
     eza
@@ -101,6 +102,18 @@ in
     acceptTerms = true;
     defaults.email = "casey@rodarmor.com";
   };
+
+  security.sudo.extraRules = [
+    {
+      users = [ "lab" ];
+      commands = [
+        {
+          command = "${claude}/bin/claude";
+          options = [ "NOPASSWD" "SETENV" ];
+        }
+      ];
+    }
+  ];
 
   services = {
     forgejo = {
@@ -188,7 +201,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=${lab}/bin/lab mail --dir /var/lib/lab/mail"
+          "argv=${lab}/bin/lab mail --dir /var/lib/lab/mail --db /var/lib/lab/database.redb --claude ${claude}/bin/claude"
         ];
       };
       settings.main = {
@@ -232,6 +245,7 @@ in
         isSystemUser = true;
       };
       lab = {
+        home = "/var/lib/lab";
         isSystemUser = true;
         group = "lab";
       };
