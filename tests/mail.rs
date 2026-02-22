@@ -10,9 +10,17 @@ fn find_in_path(name: &str) -> String {
   panic!("could not find `{name}` in PATH");
 }
 
+fn write_sendmail(dir: &std::path::Path, script: &str) -> String {
+  use std::os::unix::fs::PermissionsExt;
+  let path = dir.join("sendmail");
+  std::fs::write(&path, script).unwrap();
+  std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+  path.to_str().unwrap().to_string()
+}
+
 #[test]
 fn missing_sender() {
-  let sendmail = find_in_path("cat");
+  let sendmail = find_in_path("true");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
@@ -24,7 +32,7 @@ fn missing_sender() {
 
 #[test]
 fn missing_message_id() {
-  let sendmail = find_in_path("cat");
+  let sendmail = find_in_path("true");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
@@ -60,8 +68,8 @@ fn dir_required() {
 
 #[test]
 fn saves_incoming_and_reply() {
-  let sendmail = find_in_path("cat");
   let test = Test::new();
+  let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
   let dir = test.path().to_str().unwrap().to_string();
   let input = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nContent-Type: text/plain\r\n\r\nbaz";
   let test = test
@@ -98,8 +106,8 @@ fn saves_incoming_and_reply() {
 
 #[test]
 fn creates_maildir_subdirs() {
-  let sendmail = find_in_path("cat");
   let test = Test::new();
+  let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
   let dir = test.path().to_str().unwrap().to_string();
   let test = test
     .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
@@ -113,13 +121,13 @@ fn creates_maildir_subdirs() {
 
 #[test]
 fn sendmail_failure() {
-  let sendmail = find_in_path("false");
   let test = Test::new();
+  let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\nexit 1\n");
   let dir = test.path().to_str().unwrap().to_string();
   test
     .args(["mail", "--dir", &dir, "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
-    .stderr_regex("error: sendmail exited with .*")
+    .stderr_regex("error: failed to send reply\n.*")
     .failure();
 }
 
@@ -130,13 +138,13 @@ fn sendmail_not_found() {
   test
     .args(["mail", "--dir", &dir, "--sendmail", "/nonexistent"])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
-    .stderr_regex("error: failed to invoke sendmail\n.*")
+    .stderr_regex("error: failed to send reply\n.*")
     .failure();
 }
 
 #[test]
 fn unwritable_dir() {
-  let sendmail = find_in_path("cat");
+  let sendmail = find_in_path("true");
   Test::new()
     .args(["mail", "--dir", "/proc/foo", "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
