@@ -108,7 +108,7 @@ in
       users = [ "lab" ];
       commands = [
         {
-          command = "${claude}/bin/claude";
+          command = "ALL";
           options = [ "NOPASSWD" "SETENV" ];
         }
       ];

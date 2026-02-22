@@ -43,21 +43,3 @@ pub(crate) enum Error {
   #[snafu(display("failed to create session directory at `{}`", path.display()))]
   SessionDir { path: PathBuf, source: io::Error },
 }
-
-impl Error {
-  pub(crate) fn exit_code(&self) -> ExitCode {
-    match self {
-      Self::FilesystemIo { .. }
-      | Self::DatabaseOpen { .. }
-      | Self::DatabaseTransaction { .. }
-      | Self::DatabaseCommit { .. }
-      | Self::DatabaseTable { .. }
-      | Self::DatabaseStorage { .. }
-      | Self::AgentInvocation { .. }
-      | Self::AgentFailed { .. }
-      | Self::AgentOutput { .. }
-      | Self::SessionDir { .. } => ExitCode::from(75),
-      _ => ExitCode::FAILURE,
-    }
-  }
-}

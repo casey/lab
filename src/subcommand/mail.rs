@@ -118,6 +118,8 @@ impl Mail {
       .arg("-p")
       .arg("--session-id")
       .arg(session)
+      .arg("--append-system-prompt")
+      .arg(format!("Your session ID is {session}."))
       .stdin(process::Stdio::piped())
       .stdout(process::Stdio::piped())
       .stderr(process::Stdio::piped())

@@ -118,7 +118,7 @@ fn db_required() {
 fn saves_incoming_and_reply() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -176,7 +176,7 @@ fn saves_incoming_and_reply() {
 fn creates_maildir_subdirs() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -211,7 +211,7 @@ fn creates_maildir_subdirs() {
 fn sendmail_failure() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\nexit 1\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -242,7 +242,7 @@ fn sendmail_failure() {
 #[test]
 fn sendmail_not_found() {
   let test = Test::new();
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -292,14 +292,14 @@ fn unwritable_dir() {
     ])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
     .stderr_regex("error: I/O error at `/proc/foo/cur`\n.*")
-    .status(75);
+    .failure();
 }
 
 #[test]
 fn new_thread_creates_session() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -338,7 +338,7 @@ fn new_thread_creates_session() {
 fn existing_thread_reuses_session() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -366,7 +366,7 @@ fn existing_thread_reuses_session() {
     .success();
 
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\necho bar\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\necho bar\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let _test = test
@@ -401,7 +401,10 @@ fn existing_thread_reuses_session() {
 fn markdown_conversion() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\nprintf '# foo\\n'\n");
+  let claude = write_claude(
+    test.path(),
+    "#!/bin/sh\ncat > /dev/null\nprintf '# foo\\n'\n",
+  );
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -449,7 +452,7 @@ fn markdown_conversion() {
 fn agent_failure() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");
-  let claude = write_claude(test.path(), "#!/bin/sh\nexit 1\n");
+  let claude = write_claude(test.path(), "#!/bin/sh\ncat > /dev/null\nexit 1\n");
   let sudo = write_sudo(test.path());
   let dir = test.path().to_str().unwrap().to_string();
   let db = test.path().join("db.redb");
@@ -474,5 +477,5 @@ fn agent_failure() {
     ])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nContent-Type: text/plain\r\n\r\nbaz")
     .stderr_regex("error: agent exited with .*\n")
-    .status(75);
+    .failure();
 }

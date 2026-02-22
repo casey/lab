@@ -35,7 +35,7 @@ fn main() -> ExitCode {
     for (i, source) in snafu::CleanedErrorText::new(&err).skip(1).enumerate() {
       eprintln!("  {}: {}", i, source.1);
     }
-    err.exit_code()
+    ExitCode::FAILURE
   } else {
     ExitCode::SUCCESS
   }
