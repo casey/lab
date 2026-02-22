@@ -12,7 +12,7 @@ fn find_in_path(name: &str) -> String {
 
 #[test]
 fn missing_sender() {
-  let sendmail = find_in_path("true");
+  let sendmail = find_in_path("cat");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
@@ -24,7 +24,7 @@ fn missing_sender() {
 
 #[test]
 fn missing_message_id() {
-  let sendmail = find_in_path("true");
+  let sendmail = find_in_path("cat");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   test
@@ -60,7 +60,7 @@ fn dir_required() {
 
 #[test]
 fn saves_incoming_and_reply() {
-  let sendmail = find_in_path("true");
+  let sendmail = find_in_path("cat");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   let input = b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nContent-Type: text/plain\r\n\r\nbaz";
@@ -98,7 +98,7 @@ fn saves_incoming_and_reply() {
 
 #[test]
 fn creates_maildir_subdirs() {
-  let sendmail = find_in_path("true");
+  let sendmail = find_in_path("cat");
   let test = Test::new();
   let dir = test.path().to_str().unwrap().to_string();
   let test = test
@@ -136,7 +136,7 @@ fn sendmail_not_found() {
 
 #[test]
 fn unwritable_dir() {
-  let sendmail = find_in_path("true");
+  let sendmail = find_in_path("cat");
   Test::new()
     .args(["mail", "--dir", "/proc/foo", "--sendmail", &sendmail])
     .stdin(b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\n\r\nbaz")
