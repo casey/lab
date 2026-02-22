@@ -283,10 +283,9 @@ in
     };
   };
 
-  system.activationScripts.secrets = ''
-    mkdir -p /root/secrets
-    chmod 700 /root/secrets
-  '';
+  systemd.tmpfiles.rules = [
+    "d /root/secrets 0700 root root -"
+  ];
 
   systemd.services.ergo = {
     after = [ "network.target" "acme-tulip.farm.service" ];
