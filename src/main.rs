@@ -5,9 +5,9 @@ use {
   snafu::{ResultExt, Snafu},
   std::{
     fs,
-    io::{self, Read, Write},
+    io::{self, Read},
     path::{Path, PathBuf},
-    process::{self, Command, ExitCode, Stdio},
+    process::ExitCode,
     time::{SystemTime, UNIX_EPOCH},
   },
 };
