@@ -6,7 +6,6 @@ use {
     process::{Command, Stdio},
     str,
   },
-  tempfile,
 };
 
 mod expected;
