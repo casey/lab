@@ -269,6 +269,10 @@ in
     groups.opendmarc = {};
   };
 
+  systemd.tmpfiles.rules = [
+    "d /var/lib/lab 0750 lab lab -"
+  ];
+
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
 
   systemd.services.opendmarc = {
