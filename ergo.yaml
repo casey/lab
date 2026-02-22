@@ -1,18 +1,38 @@
 network:
-    name: lab
+  name: lab
 
 server:
-    name: tulip.farm
-    listeners:
-        ":6697":
-            tls:
-                cert: /var/lib/acme/tulip.farm/fullchain.pem
-                key: /var/lib/acme/tulip.farm/key.pem
-    sts:
-        enabled: true
+  name: tulip.farm
+  listeners:
+    ":6697":
+      tls:
+        cert: /var/lib/acme/tulip.farm/fullchain.pem
+        key: /var/lib/acme/tulip.farm/key.pem
+  max-sendq: 96k
+  sts:
+    enabled: true
+
+datastore:
+  path: datastore.db
+
+limits:
+  nicklen: 32
+  identlen: 20
+  realnamelen: 150
+  channellen: 64
+  awaylen: 390
+  kicklen: 390
+  topiclen: 390
+  monitor-entries: 100
+  whowas-entries: 100
+  chan-list-modes: 100
+  registration-messages: 1024
+  multiline:
+    max-bytes: 4096
+    max-lines: 100
 
 accounts:
-    registration:
-        enabled: false
-    require-sasl:
-        enabled: true
+  registration:
+    enabled: false
+  require-sasl:
+    enabled: true
