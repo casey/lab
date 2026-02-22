@@ -201,7 +201,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=${lab}/bin/lab mail --dir /var/lib/lab/mail --db /var/lib/lab/database.redb --claude ${claude}/bin/claude"
+          "argv=/run/wrappers/bin/sudo IS_SANDBOX=1 ${lab}/bin/lab mail --dir /var/lib/lab/mail --db /var/lib/lab/database.redb --claude ${claude}/bin/claude"
         ];
       };
       settings.main = {

@@ -36,8 +36,11 @@ pub(crate) enum Error {
   DatabaseStorage { source: redb::StorageError },
   #[snafu(display("failed to invoke agent"))]
   AgentInvocation { source: io::Error },
-  #[snafu(display("agent exited with {status}"))]
-  AgentFailed { status: process::ExitStatus },
+  #[snafu(display("agent exited with {status}\n{stderr}"))]
+  AgentFailed {
+    status: process::ExitStatus,
+    stderr: String,
+  },
   #[snafu(display("agent output is not valid UTF-8"))]
   AgentOutput { source: std::string::FromUtf8Error },
   #[snafu(display("failed to create session directory at `{}`", path.display()))]

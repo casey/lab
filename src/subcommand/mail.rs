@@ -12,8 +12,6 @@ pub(crate) struct Mail {
   db: PathBuf,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
-  #[arg(long, default_value = "/run/wrappers/bin/sudo")]
-  sudo: PathBuf,
   #[arg(long, default_value = "/var/lib/lab/sessions")]
   session_dir: PathBuf,
 }
@@ -113,8 +111,7 @@ impl Mail {
       path: session_dir.clone(),
     })?;
 
-    let output = Command::new(&self.sudo)
-      .arg(&self.claude)
+    let output = Command::new(&self.claude)
       .arg("-p")
       .arg("--session-id")
       .arg(session)
@@ -124,8 +121,6 @@ impl Mail {
       .stdout(process::Stdio::piped())
       .stderr(process::Stdio::piped())
       .current_dir(&session_dir)
-      .env("HOME", "/root")
-      .env("IS_SANDBOX", "1")
       .spawn()
       .and_then(|mut child| {
         use io::Write;
@@ -139,6 +134,7 @@ impl Mail {
     if !output.status.success() {
       return Err(Error::AgentFailed {
         status: output.status,
+        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
       });
     }
 
