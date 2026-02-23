@@ -36,8 +36,8 @@ in
 
   environment = {
     etc = {
-      "claude-code/managed-settings.json".source = ./claude.json;
-      "opendmarc/opendmarc.conf".source = ./opendmarc.conf;
+      "claude-code/managed-settings.json".source = ./etc/claude.json;
+      "opendmarc/opendmarc.conf".source = ./etc/opendmarc.conf;
     };
 
     variables.IS_SANDBOX = "1";
@@ -163,7 +163,7 @@ in
     nsd = {
       enable = true;
       interfaces = [ "0.0.0.0" "::" ];
-      zones."tulip.farm.".data = builtins.readFile ./tulip.farm.zone;
+      zones."tulip.farm.".data = builtins.readFile ./etc/tulip.farm.zone;
     };
 
     opendkim = {
@@ -284,7 +284,7 @@ in
     after = [ "network.target" "acme-tulip.farm.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.ergochat}/bin/ergo run --conf ${./ergo.yaml}";
+      ExecStart = "${pkgs.ergochat}/bin/ergo run --conf ${./etc/ergo.yaml}";
       WorkingDirectory = "/var/lib/ergo";
       User = "ergo";
       Group = "ergo";
@@ -320,7 +320,7 @@ in
 
   home-manager.users.root = {
     home = {
-      file.".claude/rules/lab.md".source = ./lab.md;
+      file.".claude/rules/lab.md".source = ./etc/lab.md;
       stateVersion = "26.05";
     };
   };
