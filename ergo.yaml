@@ -3,6 +3,7 @@ network:
 
 server:
   name: tulip.farm
+  lookup-hostnames: false
   max-line-len: 2048
   listeners:
     ":6697":
@@ -93,6 +94,14 @@ history:
     whitelist:
       - "+draft/react"
       - "+react"
+
+webpush:
+  enabled: true
+  timeout: 10s
+  delay: 0s
+  subscriber: "https://tulip.farm/"
+  max-subscriptions: 4
+  expiration: 14d
 
 metadata:
   enabled: true

@@ -2,6 +2,9 @@
 
 let
   claude = claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  claudeJournalHook = pkgs.writeShellScript "claude-journal-hook" ''
+    logger -t agent -- "$(head -c 262144)"
+  '';
   lab = pkgs.rustPlatform.buildRustPackage {
     pname = "lab";
     version = "0.0.0";
@@ -39,6 +42,40 @@ in
       permissions = {
         defaultMode = "bypassPermissions";
       };
+      hooks = {
+        PreToolUse = [{
+          matcher = ".*";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        PostToolUse = [{
+          matcher = ".*";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        UserPromptSubmit = [{
+          matcher = "";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        Stop = [{
+          matcher = "";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        SessionStart = [{
+          matcher = "";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        SessionEnd = [{
+          matcher = "";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        SubagentStart = [{
+          matcher = "";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+        SubagentStop = [{
+          matcher = "";
+          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
+        }];
+      };
     };
   };
 
@@ -68,6 +105,7 @@ in
     git
     jq
     just
+    lab
     neomutt
     neovim
     nix-search
@@ -120,6 +158,8 @@ in
       ];
     }
   ];
+
+  services.journald.extraConfig = "Storage=persistent";
 
   services = {
     forgejo = {
