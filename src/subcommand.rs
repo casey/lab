@@ -1,5 +1,6 @@
 mod chat;
 mod mail;
+mod notify;
 
 use super::*;
 
@@ -76,6 +77,7 @@ pub(crate) fn invoke_agent(
 pub(crate) enum Subcommand {
   Chat(chat::Chat),
   Mail(mail::Mail),
+  Notify(notify::Notify),
 }
 
 impl Subcommand {
@@ -83,6 +85,7 @@ impl Subcommand {
     match self {
       Self::Chat(chat) => chat.run(),
       Self::Mail(mail) => mail.run(),
+      Self::Notify(notify) => notify.run(),
     }
   }
 }
