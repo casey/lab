@@ -165,7 +165,7 @@ impl Chat {
       resume,
       text,
       Some(&format!(
-        "You are chatting over IRC with {sender}. Your response should be plain text appropriate for IRC messages."
+        "You are chatting over IRC with {sender}."
       )),
       true,
     )
