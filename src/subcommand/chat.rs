@@ -164,9 +164,7 @@ impl Chat {
       &session,
       resume,
       text,
-      Some(&format!(
-        "You are chatting over IRC with {sender}."
-      )),
+      Some(&format!("You are chatting over IRC with {sender}.")),
       true,
     )
   }
@@ -546,10 +544,8 @@ fn split_utf8(s: &str, max_bytes: usize) -> Vec<&str> {
 
     let at_boundary = end >= s.len() || s.as_bytes()[end] == b' ';
 
-    if !at_boundary {
-      if let Some(space) = s[start..end].rfind(' ') {
-        end = start + space;
-      }
+    if !at_boundary && let Some(space) = s[start..end].rfind(' ') {
+      end = start + space;
     }
 
     chunks.push(&s[start..end]);
