@@ -2,9 +2,6 @@
 
 let
   claude = claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default;
-  claudeJournalHook = pkgs.writeShellScript "claude-journal-hook" ''
-    logger -t agent -- "$(head -c 262144)"
-  '';
   lab = pkgs.rustPlatform.buildRustPackage {
     pname = "lab";
     version = "0.0.0";
@@ -37,86 +34,40 @@ in
     };
   };
 
-  environment.etc."claude-code/managed-settings.json" = {
-    text = builtins.toJSON {
-      permissions = {
-        defaultMode = "bypassPermissions";
-      };
-      hooks = {
-        PreToolUse = [{
-          matcher = ".*";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        PostToolUse = [{
-          matcher = ".*";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        UserPromptSubmit = [{
-          matcher = "";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        Stop = [{
-          matcher = "";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        SessionStart = [{
-          matcher = "";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        SessionEnd = [{
-          matcher = "";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        SubagentStart = [{
-          matcher = "";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-        SubagentStop = [{
-          matcher = "";
-          hooks = [{ type = "command"; command = "${claudeJournalHook}"; }];
-        }];
-      };
+  environment = {
+    etc = {
+      "claude-code/managed-settings.json".source = ./claude.json;
+      "opendmarc/opendmarc.conf".source = ./opendmarc.conf;
     };
+
+    variables.IS_SANDBOX = "1";
+
+    systemPackages = with pkgs; [
+      btop
+      clang
+      claude
+      delta
+      dig
+      erdtree
+      ergochat
+      eza
+      gh
+      git
+      jq
+      just
+      lab
+      neomutt
+      neovim
+      nix-search
+      openssl
+      python3
+      ripgrep
+      rustup
+      tmux
+      tree
+      zsh
+    ];
   };
-
-  environment.etc."opendmarc/opendmarc.conf".text = ''
-    AuthservID tulip.farm
-    TrustedAuthservIDs tulip.farm
-    Socket local:/run/opendmarc/opendmarc.sock
-    RejectFailures true
-    RequiredHeaders true
-    SPFIgnoreResults true
-    SPFSelfValidate true
-    Syslog true
-  '';
-
-  environment.variables.IS_SANDBOX = "1";
-
-  environment.systemPackages = with pkgs; [
-    btop
-    clang
-    claude
-    delta
-    dig
-    erdtree
-    ergochat
-    eza
-    gh
-    git
-    jq
-    just
-    lab
-    neomutt
-    neovim
-    nix-search
-    openssl
-    python3
-    ripgrep
-    rustup
-    tmux
-    tree
-    zsh
-  ];
 
   networking = {
     hostName = "lab";
@@ -203,7 +154,9 @@ in
         };
       };
       virtualHosts."tulip.farm" = {
+        forceSSL = true;
         enableACME = true;
+        root = ./www;
       };
     };
 
@@ -367,14 +320,7 @@ in
 
   home-manager.users.root = {
     home = {
-      file.".claude/rules/lab.md".text = ''
-        This NixOS server is a sandbox for agents.
-
-        If a tool you would like to use is not installed, request permission to add it to the NixOS configuration.
-
-        Do not force push.
-      '';
-
+      file.".claude/rules/lab.md".source = ./lab.md;
       stateVersion = "26.05";
     };
   };
