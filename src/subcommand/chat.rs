@@ -164,7 +164,8 @@ impl Chat {
       &session,
       resume,
       text,
-      Some("Your messages should be plain text appropriate for IRC."),
+      Some(&format!("You are chatting over IRC with {sender}. Your response should be plain text appropriate for IRC messages. Do not use markdown.")),
+      true,
     )
   }
 

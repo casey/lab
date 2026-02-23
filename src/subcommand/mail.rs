@@ -133,6 +133,7 @@ impl Mail {
       resume,
       &message.body,
       None,
+      false,
     )?;
 
     let html = Self::markdown_to_html(&response);

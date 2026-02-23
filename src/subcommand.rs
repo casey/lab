@@ -14,6 +14,7 @@ pub(crate) fn invoke_agent(
   resume: bool,
   body: &str,
   system_prompt: Option<&str>,
+  fast: bool,
 ) -> Result<String> {
   let session_dir = session_dir.join(session);
 
@@ -26,6 +27,10 @@ pub(crate) fn invoke_agent(
     .arg("--print")
     .arg("--dangerously-skip-permissions")
     .env("IS_SANDBOX", "1");
+
+  if fast {
+    command.args(["--settings", r#"{"fastMode": true}"#]);
+  }
 
   if resume {
     command.arg("--resume").arg(session);

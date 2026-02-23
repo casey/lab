@@ -299,11 +299,11 @@ in
     };
   };
 
-  systemd.services.lab-chat = {
+  systemd.services.chat = {
     after = [ "network.target" "ergo.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      ExecStart = "${lab}/bin/lab chat --claude ${claude}/bin/claude";
+      ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab chat --claude ${claude}/bin/claude";
       Restart = "always";
       RestartSec = 5;
     };
