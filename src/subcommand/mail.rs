@@ -9,7 +9,7 @@ pub(crate) struct Mail {
   #[arg(long, default_value = "/run/wrappers/bin/sendmail")]
   sendmail: PathBuf,
   #[arg(long)]
-  db: PathBuf,
+  db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
   #[arg(long, default_value = "/root/sessions")]
@@ -52,10 +52,13 @@ impl Mail {
     Ok(())
   }
 
+  fn db(&self) -> PathBuf {
+    self.db.clone().unwrap_or_else(db_path)
+  }
+
   fn resolve_session(&self, message: &Message) -> Result<(String, bool)> {
-    let db = redb::Database::create(&self.db).context(error::DatabaseOpen {
-      path: self.db.clone(),
-    })?;
+    let db_path = self.db();
+    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
 
     let read_txn = db.begin_read().context(error::DatabaseTransaction)?;
     let table = read_txn.open_table(THREADS);
@@ -174,9 +177,8 @@ impl Mail {
 
     let reply_id = format!("{}@tulip.farm", uuid::Uuid::now_v7());
 
-    let db = redb::Database::create(&self.db).context(error::DatabaseOpen {
-      path: self.db.clone(),
-    })?;
+    let db_path = self.db();
+    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
     let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
     {
       let mut table = write_txn

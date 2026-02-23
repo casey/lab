@@ -207,7 +207,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=/run/wrappers/bin/sudo -i ${lab}/bin/lab mail --dir /root/mail --db /root/.lab.redb --claude ${claude}/bin/claude"
+          "argv=/run/wrappers/bin/sudo -i ${lab}/bin/lab mail --dir /root/mail --claude ${claude}/bin/claude"
         ];
       };
       settings.main = {
@@ -303,7 +303,7 @@ in
     after = [ "network.target" "ergo.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      ExecStart = "${lab}/bin/lab chat --db /root/.lab-chat.redb --claude ${claude}/bin/claude";
+      ExecStart = "${lab}/bin/lab chat --claude ${claude}/bin/claude";
       Restart = "always";
       RestartSec = 5;
     };

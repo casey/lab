@@ -3,6 +3,10 @@ mod mail;
 
 use super::*;
 
+pub(crate) fn db_path() -> PathBuf {
+  dirs::home_dir().unwrap().join(".lab.redb")
+}
+
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
   Chat(chat::Chat),

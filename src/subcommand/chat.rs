@@ -23,7 +23,7 @@ const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 #[derive(clap::Args)]
 pub(crate) struct Chat {
   #[arg(long)]
-  db: PathBuf,
+  db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
 }
@@ -87,7 +87,7 @@ impl Chat {
         }
 
         let text = text.clone();
-        let db = self.db.clone();
+        let db = self.db.clone().unwrap_or_else(db_path);
         let claude = self.claude.clone();
         let irc_sender = client.sender();
 
