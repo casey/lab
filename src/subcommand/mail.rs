@@ -113,7 +113,7 @@ impl Mail {
     })?;
 
     let mut command = Command::new(&self.claude);
-    command.arg("-p");
+    command.arg("--print").env("IS_SANDBOX", "1");
 
     if resume {
       command.arg("--resume").arg(session);

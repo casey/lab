@@ -207,7 +207,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=/run/wrappers/bin/sudo -i IS_SANDBOX=1 ${lab}/bin/lab mail --dir /root/mail --db /root/.lab.redb --claude ${claude}/bin/claude"
+          "argv=/run/wrappers/bin/sudo -i ${lab}/bin/lab mail --dir /root/mail --db /root/.lab.redb --claude ${claude}/bin/claude"
         ];
       };
       settings.main = {
@@ -302,7 +302,6 @@ in
   systemd.services.lab-chat = {
     after = [ "network.target" "ergo.service" ];
     wantedBy = [ "multi-user.target" ];
-    environment.IS_SANDBOX = "1";
     serviceConfig = {
       ExecStart = "${lab}/bin/lab chat --db /root/.lab-chat.redb --claude ${claude}/bin/claude";
       Restart = "always";

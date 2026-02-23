@@ -203,7 +203,10 @@ impl Chat {
     })?;
 
     let mut command = process::Command::new(claude);
-    command.arg("-p").arg("--dangerously-skip-permissions");
+    command
+      .arg("--print")
+      .arg("--dangerously-skip-permissions")
+      .env("IS_SANDBOX", "1");
 
     if resume {
       command.arg("--resume").arg(session);
