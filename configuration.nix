@@ -105,6 +105,7 @@ in
     git
     jq
     just
+    lab
     neomutt
     neovim
     nix-search
