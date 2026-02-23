@@ -299,15 +299,16 @@ in
     };
   };
 
-  # systemd.services.lab-chat = {
-  #   after = [ "network.target" "ergo.service" ];
-  #   wantedBy = [ "multi-user.target" ];
-  #   serviceConfig = {
-  #     ExecStart = "${lab}/bin/lab chat --db /root/.lab-chat.redb --claude ${claude}/bin/claude";
-  #     Restart = "always";
-  #     RestartSec = 5;
-  #   };
-  # };
+  systemd.services.lab-chat = {
+    after = [ "network.target" "ergo.service" ];
+    wantedBy = [ "multi-user.target" ];
+    environment.IS_SANDBOX = "1";
+    serviceConfig = {
+      ExecStart = "${lab}/bin/lab chat --db /root/.lab-chat.redb --claude ${claude}/bin/claude";
+      Restart = "always";
+      RestartSec = 5;
+    };
+  };
 
   systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
 

@@ -100,7 +100,8 @@ impl Chat {
             }
             Err(e) => {
               log::error!("failed to handle message: {e}");
-              let _ = irc_sender.send_privmsg(&sender, "error processing message");
+              let msg = format!("error: {e}").replace('\n', " | ");
+              let _ = irc_sender.send_privmsg(&sender, &msg);
             }
           }
         })
@@ -202,7 +203,7 @@ impl Chat {
     })?;
 
     let mut command = process::Command::new(claude);
-    command.arg("-p");
+    command.arg("-p").arg("--dangerously-skip-permissions");
 
     if resume {
       command.arg("--resume").arg(session);
