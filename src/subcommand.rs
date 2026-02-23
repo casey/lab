@@ -13,6 +13,7 @@ pub(crate) fn invoke_agent(
   session: &str,
   resume: bool,
   body: &str,
+  system_prompt: Option<&str>,
 ) -> Result<String> {
   let session_dir = session_dir.join(session);
 
@@ -29,11 +30,16 @@ pub(crate) fn invoke_agent(
   if resume {
     command.arg("--resume").arg(session);
   } else {
+    let prompt = if let Some(extra) = system_prompt {
+      format!("Your session ID is {session}. {extra}")
+    } else {
+      format!("Your session ID is {session}.")
+    };
     command
       .arg("--session-id")
       .arg(session)
       .arg("--append-system-prompt")
-      .arg(format!("Your session ID is {session}."));
+      .arg(prompt);
   }
 
   let output = command

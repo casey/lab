@@ -158,7 +158,14 @@ impl Chat {
 
   fn handle_message(db: &Path, claude: &Path, sender: &str, text: &str) -> Result<String> {
     let (session, resume) = Self::resolve_session(db, sender)?;
-    invoke_agent(claude, Path::new(SESSION_DIR), &session, resume, text)
+    invoke_agent(
+      claude,
+      Path::new(SESSION_DIR),
+      &session,
+      resume,
+      text,
+      Some("Your messages should be plain text appropriate for IRC."),
+    )
   }
 
   fn resolve_session(db: &Path, sender: &str) -> Result<(String, bool)> {

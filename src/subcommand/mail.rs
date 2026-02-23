@@ -126,7 +126,14 @@ impl Mail {
   fn reply(&self, message: &Message) -> Result {
     let (session, resume) = self.resolve_session(message)?;
 
-    let response = invoke_agent(&self.claude, &self.session_dir, &session, resume, &message.body)?;
+    let response = invoke_agent(
+      &self.claude,
+      &self.session_dir,
+      &session,
+      resume,
+      &message.body,
+      None,
+    )?;
 
     let html = Self::markdown_to_html(&response);
 
