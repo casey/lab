@@ -99,14 +99,6 @@ fn dir_required() {
 }
 
 #[test]
-fn db_required() {
-  Test::new()
-    .args(["mail", "--dir", "/tmp"])
-    .stderr_regex(".*required.*--db.*")
-    .status(2);
-}
-
-#[test]
 fn saves_incoming_and_reply() {
   let test = Test::new();
   let sendmail = write_sendmail(test.path(), "#!/bin/sh\ncat > /dev/null\n");

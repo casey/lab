@@ -9,7 +9,7 @@ pub(crate) struct Mail {
   #[arg(long, default_value = "/run/wrappers/bin/sendmail")]
   sendmail: PathBuf,
   #[arg(long)]
-  db: PathBuf,
+  db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
   #[arg(long, default_value = "/root/sessions")]
@@ -52,10 +52,13 @@ impl Mail {
     Ok(())
   }
 
+  fn db(&self) -> PathBuf {
+    self.db.clone().unwrap_or_else(db_path)
+  }
+
   fn resolve_session(&self, message: &Message) -> Result<(String, bool)> {
-    let db = redb::Database::create(&self.db).context(error::DatabaseOpen {
-      path: self.db.clone(),
-    })?;
+    let db_path = self.db();
+    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
 
     let read_txn = db.begin_read().context(error::DatabaseTransaction)?;
     let table = read_txn.open_table(THREADS);
@@ -105,51 +108,6 @@ impl Mail {
     Ok((session, resume))
   }
 
-  fn invoke_agent(&self, session: &str, resume: bool, body: &str) -> Result<String> {
-    let session_dir = self.session_dir.join(session);
-
-    fs::create_dir_all(&session_dir).context(error::SessionDir {
-      path: session_dir.clone(),
-    })?;
-
-    let mut command = Command::new(&self.claude);
-    command.arg("-p");
-
-    if resume {
-      command.arg("--resume").arg(session);
-    } else {
-      command
-        .arg("--session-id")
-        .arg(session)
-        .arg("--append-system-prompt")
-        .arg(format!("Your session ID is {session}."));
-    }
-
-    let output = command
-      .stdin(process::Stdio::piped())
-      .stdout(process::Stdio::piped())
-      .stderr(process::Stdio::piped())
-      .current_dir(&session_dir)
-      .spawn()
-      .and_then(|mut child| {
-        use io::Write;
-        if let Some(mut stdin) = child.stdin.take() {
-          stdin.write_all(body.as_bytes())?;
-        }
-        child.wait_with_output()
-      })
-      .context(error::AgentInvocation)?;
-
-    if !output.status.success() {
-      return Err(Error::AgentFailed {
-        status: output.status,
-        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
-      });
-    }
-
-    String::from_utf8(output.stdout).context(error::AgentOutput)
-  }
-
   fn markdown_to_html(markdown: &str) -> String {
     let options = pulldown_cmark::Options::ENABLE_TABLES
       | pulldown_cmark::Options::ENABLE_FOOTNOTES
@@ -168,15 +126,22 @@ impl Mail {
   fn reply(&self, message: &Message) -> Result {
     let (session, resume) = self.resolve_session(message)?;
 
-    let response = self.invoke_agent(&session, resume, &message.body)?;
+    let response = invoke_agent(
+      &self.claude,
+      &self.session_dir,
+      &session,
+      resume,
+      &message.body,
+      None,
+      false,
+    )?;
 
     let html = Self::markdown_to_html(&response);
 
     let reply_id = format!("{}@tulip.farm", uuid::Uuid::now_v7());
 
-    let db = redb::Database::create(&self.db).context(error::DatabaseOpen {
-      path: self.db.clone(),
-    })?;
+    let db_path = self.db();
+    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
     let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
     {
       let mut table = write_txn
