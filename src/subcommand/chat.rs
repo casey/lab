@@ -158,7 +158,7 @@ impl Chat {
 
   fn handle_message(db: &Path, claude: &Path, sender: &str, text: &str) -> Result<String> {
     let (session, resume) = Self::resolve_session(db, sender)?;
-    Self::invoke_agent(claude, &session, resume, text)
+    invoke_agent(claude, Path::new(SESSION_DIR), &session, resume, text)
   }
 
   fn resolve_session(db: &Path, sender: &str) -> Result<(String, bool)> {
@@ -193,54 +193,6 @@ impl Chat {
     }
 
     Ok((session, resume))
-  }
-
-  fn invoke_agent(claude: &Path, session: &str, resume: bool, body: &str) -> Result<String> {
-    let session_dir = Path::new(SESSION_DIR).join(session);
-
-    fs::create_dir_all(&session_dir).context(error::SessionDir {
-      path: session_dir.clone(),
-    })?;
-
-    let mut command = process::Command::new(claude);
-    command
-      .arg("--print")
-      .arg("--dangerously-skip-permissions")
-      .env("IS_SANDBOX", "1");
-
-    if resume {
-      command.arg("--resume").arg(session);
-    } else {
-      command
-        .arg("--session-id")
-        .arg(session)
-        .arg("--append-system-prompt")
-        .arg(format!("Your session ID is {session}."));
-    }
-
-    let output = command
-      .stdin(process::Stdio::piped())
-      .stdout(process::Stdio::piped())
-      .stderr(process::Stdio::piped())
-      .current_dir(&session_dir)
-      .spawn()
-      .and_then(|mut child| {
-        use io::Write;
-        if let Some(mut stdin) = child.stdin.take() {
-          stdin.write_all(body.as_bytes())?;
-        }
-        child.wait_with_output()
-      })
-      .context(error::AgentInvocation)?;
-
-    if !output.status.success() {
-      return Err(Error::AgentFailed {
-        status: output.status,
-        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
-      });
-    }
-
-    String::from_utf8(output.stdout).context(error::AgentOutput)
   }
 
   fn send_response(sender: &Sender, target: &str, response: &str) -> Result {
