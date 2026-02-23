@@ -9,7 +9,7 @@ use {
     io::{self, Read},
     path::{Path, PathBuf},
     process::{self, Command, ExitCode},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
   },
 };
 
@@ -26,9 +26,15 @@ struct Arguments {
 }
 
 fn main() -> ExitCode {
+  #[cfg(target_os = "linux")]
   if let Ok(logger) = systemd_journal_logger::JournalLog::new() {
     let _ = logger.install();
     log::set_max_level(log::LevelFilter::Info);
+  }
+
+  #[cfg(not(target_os = "linux"))]
+  {
+    env_logger::init();
   }
 
   if let Err(err) = Arguments::parse().subcommand.run() {

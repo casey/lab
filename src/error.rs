@@ -45,4 +45,14 @@ pub(crate) enum Error {
   AgentOutput { source: std::string::FromUtf8Error },
   #[snafu(display("failed to create session directory at `{}`", path.display()))]
   SessionDir { path: PathBuf, source: io::Error },
+  #[snafu(display("IRC error"))]
+  Irc { source: irc::error::Error },
+  #[snafu(display("failed to read password file `{}`", path.display()))]
+  PasswordFile { path: PathBuf, source: io::Error },
+  #[snafu(display("failed to create tokio runtime"))]
+  TokioRuntime { source: io::Error },
+  #[snafu(display("spawn_blocking task panicked"))]
+  TokioJoin { source: tokio::task::JoinError },
+  #[snafu(display("IRC protocol error: {message}"))]
+  IrcProtocol { message: String },
 }

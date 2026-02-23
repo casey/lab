@@ -71,6 +71,7 @@ in
     neomutt
     neovim
     nix-search
+    openssl
     python3
     ripgrep
     rustup
@@ -206,7 +207,7 @@ in
         args = [
           "flags=RX"
           "user=lab:lab"
-          "argv=/run/wrappers/bin/sudo -i IS_SANDBOX=1 ${lab}/bin/lab mail --dir /root/mail --db /root/.lab.redb --claude ${claude}/bin/claude"
+          "argv=/run/wrappers/bin/sudo -i ${lab}/bin/lab mail --dir /root/mail --claude ${claude}/bin/claude"
         ];
       };
       settings.main = {
@@ -282,6 +283,10 @@ in
     };
   };
 
+  systemd.tmpfiles.rules = [
+    "d /root/secrets 0700 root root -"
+  ];
+
   systemd.services.ergo = {
     after = [ "network.target" "acme-tulip.farm.service" ];
     wantedBy = [ "multi-user.target" ];
@@ -291,6 +296,16 @@ in
       User = "ergo";
       Group = "ergo";
       StateDirectory = "ergo";
+    };
+  };
+
+  systemd.services.chat = {
+    after = [ "network.target" "ergo.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab chat --claude ${claude}/bin/claude";
+      Restart = "always";
+      RestartSec = 5;
     };
   };
 

@@ -5,7 +5,10 @@ edition = "2024"
 autotests = false
 
 [dependencies]
+base64 = "0.22.1"
 clap = { version = "4", features = ["derive"] }
+dirs = "6.0.0"
+irc = { version = "1.1.0", default-features = false, features = ["tls-rust"] }
 lettre = { version = "0.11.19", default-features = false, features = ["sendmail-transport"] }
 log = "0.4"
 mail-builder = "0.4.4"
@@ -13,8 +16,15 @@ mailparse = "0.15"
 pulldown-cmark = "0.13.0"
 redb = "3.1.0"
 snafu = "0.8"
-systemd-journal-logger = "2"
+tokio = { version = "1.49.0", features = ["rt", "rt-multi-thread"] }
+tokio-stream = "0.1.18"
 uuid = { version = "1.21.0", features = ["v7"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+systemd-journal-logger = "2"
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+env_logger = "0.11"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
