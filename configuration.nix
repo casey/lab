@@ -86,7 +86,12 @@ in
     warn-dirty = false;
   };
 
-  nixpkgs.config.allowUnfree = true;
+  nixpkgs.config = {
+    allowUnfree = true;
+    permittedInsecurePackages = [
+      "opendkim-2.11.0-Beta2"
+    ];
+  };
 
   programs.zsh.enable = true;
 
@@ -172,6 +177,7 @@ in
       domains = "csl:tulip.farm";
       settings = {
         Mode = "sv";
+        KeepAuthResults = "yes";
         "On-BadSignature" = "reject";
         "On-NoSignature" = "reject";
         "On-KeyNotFound" = "reject";
@@ -191,6 +197,10 @@ in
 
     postfix = {
       enable = true;
+      enableHeaderChecks = true;
+      headerChecks = [
+        { pattern = "/^Authentication-Results:.*tulip\\.farm/"; action = "IGNORE"; }
+      ];
       settings.master.lab = {
         type = "unix";
         privileged = true;
