@@ -57,6 +57,7 @@ pub(crate) enum Error {
   IrcProtocol { message: String },
   #[snafu(display("failed to parse JSON"))]
   JsonParse { source: serde_json::Error },
+  #[cfg(target_os = "linux")]
   #[snafu(display("failed to send to journal"))]
   JournalSend { source: io::Error },
 }
