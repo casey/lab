@@ -10,5 +10,6 @@ use {
 
 mod chat;
 mod expected;
+mod log;
 mod mail;
 mod test;
