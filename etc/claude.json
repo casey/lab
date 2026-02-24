@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
@@ -86,10 +86,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "logger -t agent"
+            "command": "lab log"
           }
         ]
       }
     ]
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }
