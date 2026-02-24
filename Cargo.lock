@@ -1037,6 +1037,7 @@ dependencies = [
  "pulldown-cmark",
  "redb",
  "regex",
+ "serde_json",
  "snafu",
  "systemd-journal-logger",
  "tempfile",

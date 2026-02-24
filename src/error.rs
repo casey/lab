@@ -55,4 +55,8 @@ pub(crate) enum Error {
   TokioJoin { source: tokio::task::JoinError },
   #[snafu(display("IRC protocol error: {message}"))]
   IrcProtocol { message: String },
+  #[snafu(display("failed to parse JSON"))]
+  JsonParse { source: serde_json::Error },
+  #[snafu(display("failed to send to journal"))]
+  JournalSend { source: io::Error },
 }
