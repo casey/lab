@@ -46,7 +46,7 @@ impl Chat {
       match self.run_connection(&password).await {
         Ok(()) => {}
         Err(e) => {
-          log::error!("connection error: {e}");
+          ::log::error!("connection error: {e}");
           tokio::time::sleep(RECONNECT_DELAY).await;
         }
       }
@@ -95,11 +95,11 @@ impl Chat {
           match Self::handle_message(&db, &claude, &sender, &text) {
             Ok(response) => {
               if let Err(e) = Self::send_response(&irc_sender, &sender, &response) {
-                log::error!("failed to send response: {e}");
+                ::log::error!("failed to send response: {e}");
               }
             }
             Err(e) => {
-              log::error!("failed to handle message: {e}");
+              ::log::error!("failed to handle message: {e}");
               let msg = format!("error: {e}").replace('\n', " | ");
               let _ = irc_sender.send_privmsg(&sender, &msg);
             }
