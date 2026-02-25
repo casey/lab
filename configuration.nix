@@ -72,6 +72,13 @@ in
     ];
   };
 
+  home-manager.users.root = {
+    home = {
+      file.".claude/rules/lab.md".source = ./etc/lab.md;
+      stateVersion = "26.05";
+    };
+  };
+
   networking = {
     hostName = "lab";
     useDHCP = false;
@@ -111,30 +118,30 @@ in
     defaults.email = "casey@rodarmor.com";
   };
 
-  security.sudo.extraConfig = "Defaults closefrom_override";
+  security = {
+    sudo.extraConfig = "Defaults closefrom_override";
 
-  security.sudo.extraRules = [
-    {
-      users = [ "git" ];
-      commands = [
-        {
-          command = "${lab}/bin/lab note";
-          options = [ "NOPASSWD" ];
-        }
-      ];
-    }
-    {
-      users = [ "lab" ];
-      commands = [
-        {
-          command = "ALL";
-          options = [ "NOPASSWD" "SETENV" ];
-        }
-      ];
-    }
-  ];
-
-  services.journald.extraConfig = "Storage=persistent";
+    sudo.extraRules = [
+      {
+        users = [ "git" ];
+        commands = [
+          {
+            command = "${lab}/bin/lab note";
+            options = [ "NOPASSWD" ];
+          }
+        ];
+      }
+      {
+        users = [ "lab" ];
+        commands = [
+          {
+            command = "ALL";
+            options = [ "NOPASSWD" "SETENV" ];
+          }
+        ];
+      }
+    ];
+  };
 
   services = {
     forgejo = {
@@ -166,6 +173,8 @@ in
         session.COOKIE_SECURE = true;
       };
     };
+
+    journald.extraConfig = "Storage=persistent";
 
     nginx = {
       enable = true;
@@ -305,84 +314,84 @@ in
     };
   };
 
-  system.activationScripts.notebook-hook = {
-    deps = [ "users" ];
-    text = ''
-      REPO="/var/lib/forgejo/repositories/root/notebook.git"
-      CONFIG="/var/lib/forgejo/custom/conf/app.ini"
-      if [ -d "$REPO" ] && [ -f "$CONFIG" ]; then
-        ${pkgs.su}/bin/su -s /bin/sh git -c \
-          "${pkgs.forgejo}/bin/forgejo admin regenerate hooks --config=$CONFIG"
-        mkdir -p "$REPO/hooks/post-receive.d"
-        ln -sf ${notebook-hook} "$REPO/hooks/post-receive.d/notify"
-        chown -h git:git "$REPO/hooks/post-receive.d/notify"
-      fi
-    '';
+  system = {
+    activationScripts.notebook-hook = {
+      deps = [ "users" ];
+      text = ''
+        REPO="/var/lib/forgejo/repositories/root/notebook.git"
+        CONFIG="/var/lib/forgejo/custom/conf/app.ini"
+        if [ -d "$REPO" ] && [ -f "$CONFIG" ]; then
+          ${pkgs.su}/bin/su -s /bin/sh git -c \
+            "${pkgs.forgejo}/bin/forgejo admin regenerate hooks --config=$CONFIG"
+          mkdir -p "$REPO/hooks/post-receive.d"
+          ln -sf ${notebook-hook} "$REPO/hooks/post-receive.d/notify"
+          chown -h git:git "$REPO/hooks/post-receive.d/notify"
+        fi
+      '';
+    };
+
+    stateVersion = "26.05";
   };
 
-  systemd.tmpfiles.rules = [
-    "d /root/secrets 0700 root root -"
-  ];
+  systemd = {
+    tmpfiles.rules = [
+      "d /root/secrets 0700 root root -"
+    ];
 
-  systemd.services.ergo = {
-    after = [ "network.target" "acme-tulip.farm.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.ergochat}/bin/ergo run --conf ${./etc/ergo.yaml}";
-      WorkingDirectory = "/var/lib/ergo";
-      User = "ergo";
-      Group = "ergo";
-      StateDirectory = "ergo";
+    services = {
+      chat = {
+        after = [ "network.target" "ergo.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab chat --claude ${claude}/bin/claude";
+          Restart = "always";
+          RestartSec = 5;
+        };
+      };
+
+      ergo = {
+        after = [ "network.target" "acme-tulip.farm.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = "${pkgs.ergochat}/bin/ergo run --conf ${./etc/ergo.yaml}";
+          WorkingDirectory = "/var/lib/ergo";
+          User = "ergo";
+          Group = "ergo";
+          StateDirectory = "ergo";
+        };
+      };
+
+      notebook = {
+        after = [ "network.target" ];
+        serviceConfig = {
+          ExecStart = "/run/wrappers/bin/sudo -C 4 -i ${lab}/bin/lab notebook --claude ${claude}/bin/claude";
+          Restart = "always";
+          RestartSec = 5;
+        };
+      };
+
+      opendkim.serviceConfig.UMask = lib.mkForce "0007";
+
+      opendmarc = {
+        after = [ "network.target" "opendkim.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.opendmarc}/bin/opendmarc -f -l -c /etc/opendmarc/opendmarc.conf";
+          User = "opendmarc";
+          Group = "opendmarc";
+          RuntimeDirectory = "opendmarc";
+          RuntimeDirectoryMode = "0750";
+          UMask = "0007";
+        };
+      };
+    };
+
+    sockets.notebook = {
+      listenDatagrams = [ "/run/notebook.sock" ];
+      socketConfig.SocketMode = "0600";
+      wantedBy = [ "sockets.target" ];
     };
   };
 
-  systemd.services.chat = {
-    after = [ "network.target" "ergo.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab chat --claude ${claude}/bin/claude";
-      Restart = "always";
-      RestartSec = 5;
-    };
-  };
-
-  systemd.sockets.notebook = {
-    listenDatagrams = [ "/run/notebook.sock" ];
-    socketConfig.SocketMode = "0600";
-    wantedBy = [ "sockets.target" ];
-  };
-
-  systemd.services.notebook = {
-    after = [ "network.target" ];
-    serviceConfig = {
-      ExecStart = "/run/wrappers/bin/sudo -C 4 -i ${lab}/bin/lab notebook --claude ${claude}/bin/claude";
-      Restart = "always";
-      RestartSec = 5;
-    };
-  };
-
-  systemd.services.opendkim.serviceConfig.UMask = lib.mkForce "0007";
-
-  systemd.services.opendmarc = {
-    after = [ "network.target" "opendkim.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.opendmarc}/bin/opendmarc -f -l -c /etc/opendmarc/opendmarc.conf";
-      User = "opendmarc";
-      Group = "opendmarc";
-      RuntimeDirectory = "opendmarc";
-      RuntimeDirectoryMode = "0750";
-      UMask = "0007";
-    };
-  };
-
-  home-manager.users.root = {
-    home = {
-      file.".claude/rules/lab.md".source = ./etc/lab.md;
-      stateVersion = "26.05";
-    };
-  };
-
-  system.stateVersion = "26.05";
 }
