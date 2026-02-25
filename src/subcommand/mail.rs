@@ -1,6 +1,7 @@
 use super::*;
 
 const THREADS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("threads");
+const LOCAL_ADDRESS: &str = "root@tulip.farm";
 
 #[derive(clap::Args)]
 pub(crate) struct Mail {
@@ -24,6 +25,10 @@ impl Mail {
     Self::save_to_maildir(&self.dir, &raw)?;
 
     let message = Message::parse(&raw)?;
+
+    if message.sender == LOCAL_ADDRESS {
+      return Ok(());
+    }
 
     self.reply(&message)?;
 

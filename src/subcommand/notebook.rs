@@ -11,7 +11,7 @@ const SYSTEM_PROMPT: &str = "You are monitoring the notebook repository, \
 checked out in the current directory. Each commit should be interpreted as an \
 instruction from the user. Please act on each commit using your best judgement, \
 in a way that addresses the intent of the user. This is not an interactive \
-session. Be proactive".
+session. Be proactive.";
 
 #[derive(clap::Args)]
 pub(crate) struct Notebook {
