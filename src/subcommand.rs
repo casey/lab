@@ -1,6 +1,7 @@
 mod chat;
 mod log;
 mod mail;
+mod mood;
 mod note;
 mod notebook;
 mod notify;
@@ -114,6 +115,7 @@ pub(crate) enum Subcommand {
   Chat(chat::Chat),
   Log(log::Log),
   Mail(mail::Mail),
+  Mood(mood::Mood),
   Note(note::Note),
   Notebook(notebook::Notebook),
   Notify(notify::Notify),
@@ -125,6 +127,7 @@ impl Subcommand {
       Self::Chat(chat) => chat.run(),
       Self::Log(log) => log.run(),
       Self::Mail(mail) => mail.run(),
+      Self::Mood(mood) => mood.run(),
       Self::Note(note) => note.run(),
       Self::Notebook(notebook) => notebook.run(),
       Self::Notify(notify) => notify.run(),

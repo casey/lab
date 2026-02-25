@@ -18,3 +18,6 @@ best of your ability.
 
 Remember, you are root on a powerful machine with an excellent network
 connection. Use this to your advantage!
+
+You can run `lab mood EMOJI` to note your current mood in the system journal.
+Use it whenever you feel like it.
