@@ -27,10 +27,9 @@ in
   imports = [ ./hardware-configuration.nix ];
 
   boot = {
-    kernel.sysctl ={
+    kernel.sysctl = {
       "net.ipv6.conf.enp0s3.accept_ra" = 1;
       "net.ipv6.conf.enp0s3.autoconf" = 1;
-      "net.ipv6.conf.enp0s3.use_tempaddr" = 0;
     };
     loader.grub = {
       enable = true;
@@ -75,9 +74,14 @@ in
 
   networking = {
     hostName = "lab";
-    dhcpcd.IPv6rs = false;
+    useDHCP = false;
+    interfaces.enp0s3.ipv4.addresses = [{
+      address = "74.207.251.176";
+      prefixLength = 24;
+    }];
+    defaultGateway = "74.207.251.1";
+    nameservers = [ "45.33.56.79" "173.230.147.5" "74.207.242.5" ];
     tempAddresses = "disabled";
-    useDHCP = true;
     firewall = {
       enable = true;
       allowedTCPPorts = [ 22 25 53 80 443 6697 ];
