@@ -57,6 +57,14 @@ pub(crate) enum Error {
   IrcProtocol { message: String },
   #[snafu(display("failed to parse JSON"))]
   JsonParse { source: serde_json::Error },
+  #[snafu(display("failed to send to notebook socket"))]
+  SocketSend { source: io::Error },
+  #[snafu(display("failed to receive from notebook socket"))]
+  SocketRecv { source: io::Error },
+  #[snafu(display("failed to sync notebook repo"))]
+  GitSync { source: io::Error },
+  #[snafu(display("failed to read commit info"))]
+  GitInfo { source: io::Error },
   #[cfg(target_os = "linux")]
   #[snafu(display("failed to send to journal"))]
   JournalSend { source: io::Error },

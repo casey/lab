@@ -2,6 +2,7 @@ mod chat;
 mod log;
 mod mail;
 mod note;
+mod notebook;
 mod notify;
 
 use super::*;
@@ -81,6 +82,7 @@ pub(crate) enum Subcommand {
   Log(log::Log),
   Mail(mail::Mail),
   Note(note::Note),
+  Notebook(notebook::Notebook),
   Notify(notify::Notify),
 }
 
@@ -91,6 +93,7 @@ impl Subcommand {
       Self::Log(log) => log.run(),
       Self::Mail(mail) => mail.run(),
       Self::Note(note) => note.run(),
+      Self::Notebook(notebook) => notebook.run(),
       Self::Notify(notify) => notify.run(),
     }
   }

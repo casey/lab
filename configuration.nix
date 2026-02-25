@@ -3,12 +3,7 @@
 let
   claude = claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default;
   notebook-hook = pkgs.writeShellScript "notebook-post-receive" ''
-    while read oldrev newrev refname; do
-      if [ "$refname" = "refs/heads/master" ]; then
-        message=$(${pkgs.git}/bin/git log -1 --format='%s' "$newrev")
-        /run/wrappers/bin/sudo ${lab}/bin/lab note "$message"
-      fi
-    done
+    /run/wrappers/bin/sudo ${lab}/bin/lab note
   '';
 
   lab = pkgs.rustPlatform.buildRustPackage {
@@ -117,7 +112,7 @@ in
       users = [ "git" ];
       commands = [
         {
-          command = "${lab}/bin/lab note *";
+          command = "${lab}/bin/lab note";
           options = [ "NOPASSWD" ];
         }
       ];
@@ -340,6 +335,21 @@ in
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab chat --claude ${claude}/bin/claude";
+      Restart = "always";
+      RestartSec = 5;
+    };
+  };
+
+  systemd.sockets.notebook = {
+    listenDatagrams = [ "/run/notebook.sock" ];
+    socketConfig.SocketMode = "0600";
+    wantedBy = [ "sockets.target" ];
+  };
+
+  systemd.services.notebook = {
+    after = [ "network.target" ];
+    serviceConfig = {
+      ExecStart = "${lab}/bin/lab notebook --claude ${claude}/bin/claude";
       Restart = "always";
       RestartSec = 5;
     };
