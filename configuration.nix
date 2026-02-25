@@ -2,6 +2,15 @@
 
 let
   claude = claude-code.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  notebook-hook = pkgs.writeShellScript "notebook-post-receive" ''
+    while read oldrev newrev refname; do
+      if [ "$refname" = "refs/heads/master" ]; then
+        message=$(${pkgs.git}/bin/git log -1 --format='%s' "$newrev")
+        /run/wrappers/bin/sudo ${lab}/bin/lab notify "$message"
+      fi
+    done
+  '';
+
   lab = pkgs.rustPlatform.buildRustPackage {
     pname = "lab";
     version = "0.0.0";
@@ -104,6 +113,15 @@ in
   };
 
   security.sudo.extraRules = [
+    {
+      users = [ "git" ];
+      commands = [
+        {
+          command = "${lab}/bin/lab notify *";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
     {
       users = [ "lab" ];
       commands = [
@@ -284,6 +302,21 @@ in
       lab = { members = [ "root" ]; };
       opendmarc = {};
     };
+  };
+
+  system.activationScripts.notebook-hook = {
+    deps = [ "users" ];
+    text = ''
+      REPO="/var/lib/forgejo/repositories/root/notebook.git"
+      CONFIG="/var/lib/forgejo/custom/conf/app.ini"
+      if [ -d "$REPO" ] && [ -f "$CONFIG" ]; then
+        ${pkgs.su}/bin/su -s /bin/sh git -c \
+          "${pkgs.forgejo}/bin/forgejo admin regenerate hooks --config=$CONFIG"
+        mkdir -p "$REPO/hooks/post-receive.d"
+        ln -sf ${notebook-hook} "$REPO/hooks/post-receive.d/notify"
+        chown -h git:git "$REPO/hooks/post-receive.d/notify"
+      fi
+    '';
   };
 
   systemd.tmpfiles.rules = [
