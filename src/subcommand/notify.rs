@@ -52,7 +52,15 @@ async fn send_async(message: &str) -> Result {
   }
 
   let sender = client.sender();
-  sender.send_privmsg(TARGET, message).context(error::Irc)?;
+  for line in message.lines() {
+    let line = line.trim();
+    if line.is_empty() {
+      continue;
+    }
+    for chunk in chat::split_utf8(line, 400) {
+      sender.send_privmsg(TARGET, chunk).context(error::Irc)?;
+    }
+  }
   sender.send_quit("").context(error::Irc)?;
 
   while let Some(msg) = stream.next().await.transpose().context(error::Irc)? {

@@ -524,7 +524,7 @@ fn markdown_to_plaintext(markdown: &str) -> String {
   output
 }
 
-fn split_utf8(s: &str, max_bytes: usize) -> Vec<&str> {
+pub(crate) fn split_utf8(s: &str, max_bytes: usize) -> Vec<&str> {
   let mut chunks = Vec::new();
   let mut start = 0;
 
