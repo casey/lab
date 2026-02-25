@@ -107,6 +107,8 @@ in
     defaults.email = "casey@rodarmor.com";
   };
 
+  security.sudo.extraConfig = "Defaults closefrom_override";
+
   security.sudo.extraRules = [
     {
       users = [ "git" ];
@@ -349,7 +351,7 @@ in
   systemd.services.notebook = {
     after = [ "network.target" ];
     serviceConfig = {
-      ExecStart = "${lab}/bin/lab notebook --claude ${claude}/bin/claude";
+      ExecStart = "/run/wrappers/bin/sudo -C 4 -i ${lab}/bin/lab notebook --claude ${claude}/bin/claude";
       Restart = "always";
       RestartSec = 5;
     };

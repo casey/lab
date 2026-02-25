@@ -6,9 +6,12 @@ const SESSION_DIR: &str = "/root/sessions";
 const REPO_URL: &str = "git@localhost:root/notebook.git";
 const NOTES: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("notes");
 const DB_KEY: &str = "notebook";
-const SYSTEM_PROMPT: &str = "You are monitoring the notebook repository. \
-  It contains instructions from the user. Please act on each commit in a way \
-  that seems appropriate, and addresses the intent of the user.";
+
+const SYSTEM_PROMPT: &str = "You are monitoring the notebook repository, \
+checked out in the current directory. Each commit should be interpreted as an \
+instruction from the user. Please act on each commit using your best judgement, \
+in a way that addresses the intent of the user. This is not an interactive \
+session. Be proactive".
 
 #[derive(clap::Args)]
 pub(crate) struct Notebook {
@@ -16,10 +19,24 @@ pub(crate) struct Notebook {
   db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
+  #[arg(long)]
+  reset: bool,
 }
 
 impl Notebook {
   pub(crate) fn run(self) -> Result {
+    if self.reset {
+      let db_path = self.db.clone().unwrap_or_else(db_path);
+      let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
+      let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
+      {
+        let mut table = write_txn.open_table(NOTES).context(error::DatabaseTable)?;
+        table.remove(DB_KEY).context(error::DatabaseStorage)?;
+      }
+      write_txn.commit().context(error::DatabaseCommit)?;
+      return Ok(());
+    }
+
     let socket = unsafe { UnixDatagram::from_raw_fd(3) };
 
     let mut buf = [0u8; 4096];
@@ -42,13 +59,13 @@ impl Notebook {
   }
 
   fn handle_message(&self, oldrev: &str, newrev: &str) -> Result {
-    let (session, resume) = self.resolve_session()?;
+    let (session, resume) = self.lookup_session()?;
 
     let session_dir = Path::new(SESSION_DIR).join(&session);
 
     Self::clone_or_pull(&session_dir)?;
 
-    let prompt = Self::build_prompt(&session_dir, oldrev, newrev)?;
+    let (subject, prompt) = Self::build_prompt(&session_dir, oldrev, newrev)?;
 
     let response = invoke_agent(
       &self.claude,
@@ -60,7 +77,13 @@ impl Notebook {
       false,
     )?;
 
-    notify::send(&format!("note: {response}"))
+    if !resume {
+      self.save_session(&session)?;
+    }
+
+    let response = response.trim();
+
+    notify::send(&format!("note complete: {subject} {response}"))
   }
 
   fn clone_or_pull(session_dir: &Path) -> Result {
@@ -83,7 +106,7 @@ impl Notebook {
     Ok(())
   }
 
-  fn build_prompt(session_dir: &Path, oldrev: &str, newrev: &str) -> Result<String> {
+  fn build_prompt(session_dir: &Path, oldrev: &str, newrev: &str) -> Result<(String, String)> {
     let output = Command::new("git")
       .arg("-C")
       .arg(session_dir)
@@ -109,12 +132,13 @@ impl Notebook {
     let short_new = &newrev[..newrev.len().min(7)];
     let short_old = &oldrev[..oldrev.len().min(7)];
 
-    Ok(format!(
-      "Commit {short_new}: {subject}\nPrevious: {short_old}\nType: {push_type}"
+    Ok((
+      subject.clone(),
+      format!("Commit {short_new}: {subject}\nPrevious: {short_old}\nType: {push_type}"),
     ))
   }
 
-  fn resolve_session(&self) -> Result<(String, bool)> {
+  fn lookup_session(&self) -> Result<(String, bool)> {
     let db_path = self.db.clone().unwrap_or_else(db_path);
     let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
 
@@ -130,22 +154,25 @@ impl Notebook {
       Err(e) => return Err(e).context(error::DatabaseTable),
     };
 
-    drop(read_txn);
-
     let resume = existing.is_some();
     let session = existing.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
 
-    if !resume {
-      let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
-      {
-        let mut table = write_txn.open_table(NOTES).context(error::DatabaseTable)?;
-        table
-          .insert(DB_KEY, session.as_str())
-          .context(error::DatabaseStorage)?;
-      }
-      write_txn.commit().context(error::DatabaseCommit)?;
-    }
-
     Ok((session, resume))
+  }
+
+  fn save_session(&self, session: &str) -> Result {
+    let db_path = self.db.clone().unwrap_or_else(db_path);
+    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
+
+    let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
+    {
+      let mut table = write_txn.open_table(NOTES).context(error::DatabaseTable)?;
+      table
+        .insert(DB_KEY, session)
+        .context(error::DatabaseStorage)?;
+    }
+    write_txn.commit().context(error::DatabaseCommit)?;
+
+    Ok(())
   }
 }
