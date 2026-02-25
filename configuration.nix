@@ -6,7 +6,7 @@ let
     while read oldrev newrev refname; do
       if [ "$refname" = "refs/heads/master" ]; then
         message=$(${pkgs.git}/bin/git log -1 --format='%s' "$newrev")
-        /run/wrappers/bin/sudo ${lab}/bin/lab notify "$message"
+        /run/wrappers/bin/sudo ${lab}/bin/lab note "$message"
       fi
     done
   '';
@@ -117,7 +117,7 @@ in
       users = [ "git" ];
       commands = [
         {
-          command = "${lab}/bin/lab notify *";
+          command = "${lab}/bin/lab note *";
           options = [ "NOPASSWD" ];
         }
       ];
