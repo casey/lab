@@ -68,4 +68,6 @@ pub(crate) enum Error {
   #[cfg(target_os = "linux")]
   #[snafu(display("failed to send to journal"))]
   JournalSend { source: io::Error },
+  #[snafu(display("failed to send Pushover notification"))]
+  PushoverSend { source: reqwest::Error },
 }

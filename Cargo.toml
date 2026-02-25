@@ -15,9 +15,11 @@ mail-builder = "0.4.4"
 mailparse = "0.15"
 pulldown-cmark = "0.13.0"
 redb = "3.1.0"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+rustls = { version = "0.23.37", default-features = false, features = ["ring", "std", "tls12"] }
 serde_json = "1"
 snafu = "0.8"
-tokio = { version = "1.49.0", features = ["rt", "rt-multi-thread"] }
+tokio = { version = "1.49.0", features = ["macros", "rt", "rt-multi-thread"] }
 tokio-stream = "0.1.18"
 uuid = { version = "1.21.0", features = ["v7"] }
 

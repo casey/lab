@@ -103,6 +103,12 @@ webpush:
   max-subscriptions: 4
   expiration: 14d
 
+logging:
+  -
+    method: stderr
+    type: "* -userinput -useroutput"
+    level: info
+
 metadata:
   enabled: true
   max-subs: 100

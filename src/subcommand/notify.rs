@@ -17,12 +17,62 @@ const NICK: &str = "system";
 const PASSWORD_FILE: &str = "/root/secrets/ergo-password";
 const TARGET: &str = "rodarmor";
 
+const PUSHOVER_TOKEN_FILE: &str = "/root/secrets/pushover-token";
+const PUSHOVER_USER_FILE: &str = "/root/secrets/pushover-user";
+
 pub(crate) fn send(message: &str) -> Result {
   let rt = tokio::runtime::Runtime::new().context(error::TokioRuntime)?;
   rt.block_on(send_async(message))
 }
 
 async fn send_async(message: &str) -> Result {
+  let (irc_result, pushover_result) = tokio::join!(irc(message), pushover(message));
+
+  if let Err(err) = &irc_result {
+    ::log::error!("IRC notification failed: {err}");
+  }
+
+  if let Err(err) = &pushover_result {
+    ::log::error!("Pushover notification failed: {err}");
+  }
+
+  irc_result.or(pushover_result)
+}
+
+async fn pushover(message: &str) -> Result {
+  let token = fs::read_to_string(PUSHOVER_TOKEN_FILE)
+    .context(error::FilesystemIo {
+      path: Path::new(PUSHOVER_TOKEN_FILE),
+    })?
+    .trim()
+    .to_string();
+
+  let user = fs::read_to_string(PUSHOVER_USER_FILE)
+    .context(error::FilesystemIo {
+      path: Path::new(PUSHOVER_USER_FILE),
+    })?
+    .trim()
+    .to_string();
+
+  let client = reqwest::Client::new();
+
+  client
+    .post("https://api.pushover.net/1/messages.json")
+    .form(&[
+      ("token", token.as_str()),
+      ("user", user.as_str()),
+      ("message", message),
+    ])
+    .send()
+    .await
+    .context(error::PushoverSend)?
+    .error_for_status()
+    .context(error::PushoverSend)?;
+
+  Ok(())
+}
+
+async fn irc(message: &str) -> Result {
   let password = fs::read_to_string(PASSWORD_FILE)
     .context(error::PasswordFile {
       path: Path::new(PASSWORD_FILE),

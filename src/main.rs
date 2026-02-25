@@ -26,6 +26,10 @@ struct Arguments {
 }
 
 fn main() -> ExitCode {
+  rustls::crypto::ring::default_provider()
+    .install_default()
+    .expect("failed to install rustls crypto provider");
+
   #[cfg(target_os = "linux")]
   if let Ok(logger) = systemd_journal_logger::JournalLog::new() {
     let _ = logger.install();
