@@ -73,7 +73,40 @@ pub(crate) fn invoke_agent(
     });
   }
 
-  String::from_utf8(output.stdout).context(error::AgentOutput)
+  let response = String::from_utf8(output.stdout).context(error::AgentOutput)?;
+
+  if response.trim().is_empty() {
+    let output = Command::new(claude)
+      .arg("--print")
+      .arg("--dangerously-skip-permissions")
+      .env("IS_SANDBOX", "1")
+      .arg("--resume")
+      .arg(session)
+      .stdin(process::Stdio::piped())
+      .stdout(process::Stdio::piped())
+      .stderr(process::Stdio::piped())
+      .current_dir(&session_dir)
+      .spawn()
+      .and_then(|mut child| {
+        use io::Write;
+        if let Some(mut stdin) = child.stdin.take() {
+          stdin.write_all(b"Briefly summarize what you just did.")?;
+        }
+        child.wait_with_output()
+      })
+      .context(error::AgentInvocation)?;
+
+    if !output.status.success() {
+      return Err(Error::AgentFailed {
+        status: output.status,
+        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+      });
+    }
+
+    return String::from_utf8(output.stdout).context(error::AgentOutput);
+  }
+
+  Ok(response)
 }
 
 #[derive(clap::Subcommand)]
