@@ -1,4 +1,5 @@
 mod chat;
+mod gamemaster;
 mod log;
 mod mail;
 mod mood;
@@ -113,6 +114,7 @@ pub(crate) fn invoke_agent(
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
   Chat(chat::Chat),
+  Gamemaster(gamemaster::Gamemaster),
   Log(log::Log),
   Mail(mail::Mail),
   Mood(mood::Mood),
@@ -125,6 +127,7 @@ impl Subcommand {
   pub(crate) fn run(self) -> Result {
     match self {
       Self::Chat(chat) => chat.run(),
+      Self::Gamemaster(gamemaster) => gamemaster.run(),
       Self::Log(log) => log.run(),
       Self::Mail(mail) => mail.run(),
       Self::Mood(mood) => mood.run(),

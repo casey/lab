@@ -186,6 +186,14 @@ in
           proxyWebsockets = true;
         };
       };
+      virtualHosts."game.tulip.farm" = {
+        forceSSL = true;
+        enableACME = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:8080";
+          proxyWebsockets = true;
+        };
+      };
       virtualHosts."tulip.farm" = {
         forceSSL = true;
         enableACME = true;
@@ -295,6 +303,11 @@ in
         group = "ergo";
         extraGroups = [ "nginx" ];
       };
+      game = {
+        home = "/var/lib/game";
+        isSystemUser = true;
+        group = "game";
+      };
       postfix.extraGroups = [ "opendkim" "opendmarc" "acme" ];
       root = {
         hashedPassword = "!";
@@ -306,8 +319,9 @@ in
       };
     };
 
-    groups ={
+    groups = {
       ergo = {};
+      game = {};
       git = {};
       lab = { members = [ "root" ]; };
       opendmarc = {};
@@ -361,6 +375,27 @@ in
         };
       };
 
+      game = {
+        after = [ "network.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = "/var/lib/game/game --bind 127.0.0.1:8080";
+          WorkingDirectory = "/var/lib/game";
+          User = "game";
+          Group = "game";
+          StateDirectory = "game";
+          Restart = "always";
+          RestartSec = 5;
+        };
+      };
+
+      gamemaster = {
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab gamemaster --claude ${claude}/bin/claude";
+        };
+      };
+
       notebook = {
         after = [ "network.target" ];
         serviceConfig = {
@@ -384,6 +419,14 @@ in
           RuntimeDirectoryMode = "0750";
           UMask = "0007";
         };
+      };
+    };
+
+    timers.gamemaster = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 04:00:00";
+        Persistent = true;
       };
     };
 
