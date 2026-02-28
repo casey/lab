@@ -6,11 +6,67 @@ mod mood;
 mod note;
 mod notebook;
 mod notify;
+mod sessions;
 
 use super::*;
 
+const SESSIONS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("sessions");
+
 pub(crate) fn db_path() -> PathBuf {
   dirs::home_dir().unwrap().join(".lab.redb")
+}
+
+pub(crate) fn lookup_session(db_path: &Path, name: &str) -> Result<(String, bool)> {
+  let db = redb::Database::create(db_path).context(error::DatabaseOpen { path: db_path })?;
+
+  let read_txn = db.begin_read().context(error::DatabaseTransaction)?;
+  let table = read_txn.open_table(SESSIONS);
+
+  let existing = match table {
+    Ok(table) => table
+      .get(name)
+      .context(error::DatabaseStorage)?
+      .map(|v| v.value().to_string()),
+    Err(redb::TableError::TableDoesNotExist(_)) => None,
+    Err(e) => return Err(e).context(error::DatabaseTable),
+  };
+
+  let resume = existing.is_some();
+  let session = existing.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
+
+  Ok((session, resume))
+}
+
+pub(crate) fn save_session(db_path: &Path, name: &str, session: &str) -> Result {
+  let db = redb::Database::create(db_path).context(error::DatabaseOpen { path: db_path })?;
+
+  let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
+  {
+    let mut table = write_txn
+      .open_table(SESSIONS)
+      .context(error::DatabaseTable)?;
+    table
+      .insert(name, session)
+      .context(error::DatabaseStorage)?;
+  }
+  write_txn.commit().context(error::DatabaseCommit)?;
+
+  Ok(())
+}
+
+pub(crate) fn reset_session(db_path: &Path, name: &str) -> Result {
+  let db = redb::Database::create(db_path).context(error::DatabaseOpen { path: db_path })?;
+
+  let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
+  {
+    let mut table = write_txn
+      .open_table(SESSIONS)
+      .context(error::DatabaseTable)?;
+    table.remove(name).context(error::DatabaseStorage)?;
+  }
+  write_txn.commit().context(error::DatabaseCommit)?;
+
+  Ok(())
 }
 
 pub(crate) fn invoke_agent(
@@ -121,6 +177,7 @@ pub(crate) enum Subcommand {
   Note(note::Note),
   Notebook(notebook::Notebook),
   Notify(notify::Notify),
+  Sessions(sessions::Sessions),
 }
 
 impl Subcommand {
@@ -134,6 +191,7 @@ impl Subcommand {
       Self::Note(note) => note.run(),
       Self::Notebook(notebook) => notebook.run(),
       Self::Notify(notify) => notify.run(),
+      Self::Sessions(sessions) => sessions.run(),
     }
   }
 }

@@ -17,7 +17,6 @@ const NICK: &str = "root";
 const PASSWORD_FILE: &str = "/root/secrets/ergo-password";
 const SESSION_DIR: &str = "/root/sessions";
 const ALLOWED_SENDER: &str = "rodarmor";
-const CHATS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("chats");
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
 #[derive(clap::Args)]
@@ -157,8 +156,10 @@ impl Chat {
   }
 
   fn handle_message(db: &Path, claude: &Path, sender: &str, text: &str) -> Result<String> {
-    let (session, resume) = Self::resolve_session(db, sender)?;
-    invoke_agent(
+    let name = format!("chat:{sender}");
+    let (session, resume) = lookup_session(db, &name)?;
+
+    let response = invoke_agent(
       claude,
       Path::new(SESSION_DIR),
       &session,
@@ -166,41 +167,13 @@ impl Chat {
       text,
       Some(&format!("You are chatting over IRC with {sender}.")),
       true,
-    )
-  }
-
-  fn resolve_session(db: &Path, sender: &str) -> Result<(String, bool)> {
-    let db = redb::Database::create(db).context(error::DatabaseOpen { path: db })?;
-
-    let read_txn = db.begin_read().context(error::DatabaseTransaction)?;
-    let table = read_txn.open_table(CHATS);
-
-    let existing = match table {
-      Ok(table) => table
-        .get(sender)
-        .context(error::DatabaseStorage)?
-        .map(|v| v.value().to_string()),
-      Err(redb::TableError::TableDoesNotExist(_)) => None,
-      Err(e) => return Err(e).context(error::DatabaseTable),
-    };
-
-    drop(read_txn);
-
-    let resume = existing.is_some();
-    let session = existing.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
+    )?;
 
     if !resume {
-      let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
-      {
-        let mut table = write_txn.open_table(CHATS).context(error::DatabaseTable)?;
-        table
-          .insert(sender, session.as_str())
-          .context(error::DatabaseStorage)?;
-      }
-      write_txn.commit().context(error::DatabaseCommit)?;
+      save_session(db, &name, &session)?;
     }
 
-    Ok((session, resume))
+    Ok(response)
   }
 
   fn send_response(sender: &Sender, target: &str, response: &str) -> Result {
@@ -568,14 +541,15 @@ mod tests {
     let dir = tempfile::TempDir::new().unwrap();
     let db = dir.path().join("foo.redb");
 
-    let (session1, resume1) = Chat::resolve_session(&db, "foo").unwrap();
+    let (session1, resume1) = lookup_session(&db, "chat:foo").unwrap();
     assert!(!resume1);
+    save_session(&db, "chat:foo", &session1).unwrap();
 
-    let (session2, resume2) = Chat::resolve_session(&db, "foo").unwrap();
+    let (session2, resume2) = lookup_session(&db, "chat:foo").unwrap();
     assert!(resume2);
     assert_eq!(session1, session2);
 
-    let (session3, resume3) = Chat::resolve_session(&db, "bar").unwrap();
+    let (session3, resume3) = lookup_session(&db, "chat:bar").unwrap();
     assert!(!resume3);
     assert_ne!(session1, session3);
   }

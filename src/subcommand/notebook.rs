@@ -4,8 +4,7 @@ use std::os::{fd::FromRawFd, unix::net::UnixDatagram};
 
 const SESSION_DIR: &str = "/root/sessions";
 const REPO_URL: &str = "git@localhost:root/notebook.git";
-const NOTES: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("notes");
-const DB_KEY: &str = "notebook";
+const SESSION_NAME: &str = "notebook";
 
 const SYSTEM_PROMPT: &str = "You are monitoring the notebook repository, \
 checked out in the current directory. Each commit should be interpreted as an \
@@ -26,15 +25,8 @@ pub(crate) struct Notebook {
 impl Notebook {
   pub(crate) fn run(self) -> Result {
     if self.reset {
-      let db_path = self.db.clone().unwrap_or_else(db_path);
-      let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
-      let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
-      {
-        let mut table = write_txn.open_table(NOTES).context(error::DatabaseTable)?;
-        table.remove(DB_KEY).context(error::DatabaseStorage)?;
-      }
-      write_txn.commit().context(error::DatabaseCommit)?;
-      return Ok(());
+      let db = self.db.clone().unwrap_or_else(db_path);
+      return reset_session(&db, SESSION_NAME);
     }
 
     let socket = unsafe { UnixDatagram::from_raw_fd(3) };
@@ -59,7 +51,8 @@ impl Notebook {
   }
 
   fn handle_message(&self, oldrev: &str, newrev: &str) -> Result {
-    let (session, resume) = self.lookup_session()?;
+    let db = self.db.clone().unwrap_or_else(db_path);
+    let (session, resume) = lookup_session(&db, SESSION_NAME)?;
 
     let session_dir = Path::new(SESSION_DIR).join(&session);
 
@@ -78,7 +71,7 @@ impl Notebook {
     )?;
 
     if !resume {
-      self.save_session(&session)?;
+      save_session(&db, SESSION_NAME, &session)?;
     }
 
     let response = response.trim();
@@ -136,43 +129,5 @@ impl Notebook {
       subject.clone(),
       format!("Commit {short_new}: {subject}\nPrevious: {short_old}\nType: {push_type}"),
     ))
-  }
-
-  fn lookup_session(&self) -> Result<(String, bool)> {
-    let db_path = self.db.clone().unwrap_or_else(db_path);
-    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
-
-    let read_txn = db.begin_read().context(error::DatabaseTransaction)?;
-    let table = read_txn.open_table(NOTES);
-
-    let existing = match table {
-      Ok(table) => table
-        .get(DB_KEY)
-        .context(error::DatabaseStorage)?
-        .map(|v| v.value().to_string()),
-      Err(redb::TableError::TableDoesNotExist(_)) => None,
-      Err(e) => return Err(e).context(error::DatabaseTable),
-    };
-
-    let resume = existing.is_some();
-    let session = existing.unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
-
-    Ok((session, resume))
-  }
-
-  fn save_session(&self, session: &str) -> Result {
-    let db_path = self.db.clone().unwrap_or_else(db_path);
-    let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: db_path })?;
-
-    let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
-    {
-      let mut table = write_txn.open_table(NOTES).context(error::DatabaseTable)?;
-      table
-        .insert(DB_KEY, session)
-        .context(error::DatabaseStorage)?;
-    }
-    write_txn.commit().context(error::DatabaseCommit)?;
-
-    Ok(())
   }
 }

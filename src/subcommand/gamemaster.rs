@@ -29,15 +29,27 @@ After making your change:\n\
 6. Send Casey an email summarizing what you did and why, using \
 `sendmail` as `Root <root@tulip.farm>` to `casey@rodarmor.com`";
 
+const SESSION_NAME: &str = "gamemaster";
+
 #[derive(clap::Args)]
 pub(crate) struct Gamemaster {
+  #[arg(long)]
+  db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
+  #[arg(long)]
+  reset: bool,
 }
 
 impl Gamemaster {
   pub(crate) fn run(self) -> Result {
-    let session = uuid::Uuid::now_v7().to_string();
+    let db = self.db.clone().unwrap_or_else(db_path);
+
+    if self.reset {
+      return reset_session(&db, SESSION_NAME);
+    }
+
+    let (session, resume) = lookup_session(&db, SESSION_NAME)?;
 
     let prompt = "Review the game at /root/src/game and make one improvement. \
       Read the source, check `journalctl -t game --since yesterday` for player \
@@ -47,11 +59,15 @@ impl Gamemaster {
       &self.claude,
       Path::new(SESSION_DIR),
       &session,
-      false,
+      resume,
       prompt,
       Some(SYSTEM_PROMPT),
       false,
     )?;
+
+    if !resume {
+      save_session(&db, SESSION_NAME, &session)?;
+    }
 
     let response = response.trim();
 
