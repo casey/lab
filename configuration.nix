@@ -119,6 +119,12 @@ in
   };
 
   security = {
+    pam.loginLimits = [
+      { domain = "game"; type = "hard"; item = "nproc"; value = "20"; }
+      { domain = "game"; type = "hard"; item = "nofile"; value = "64"; }
+      { domain = "game"; type = "hard"; item = "maxlogins"; value = "100"; }
+    ];
+
     pam.services.sshd = {
       unixAuth = lib.mkForce true;
       allowNullPassword = true;
@@ -397,13 +403,32 @@ in
         after = [ "network.target" ];
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
-          ExecStart = "/var/lib/game/game --bind 127.0.0.1:8080";
+          ExecStart = "/var/lib/game/game serve --bind 127.0.0.1:8080";
           WorkingDirectory = "/var/lib/game";
           User = "game";
           Group = "game";
           StateDirectory = "game";
           Restart = "always";
           RestartSec = 5;
+
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          PrivateTmp = true;
+          PrivateDevices = true;
+          NoNewPrivileges = true;
+          ProtectKernelTunables = true;
+          ProtectKernelModules = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictNamespaces = true;
+          RestrictSUIDSGID = true;
+          RestrictRealtime = true;
+          LockPersonality = true;
+          MemoryDenyWriteExecute = true;
+          SystemCallArchitectures = "native";
+          SystemCallFilter = [ "@system-service" "~@privileged" ];
+          CapabilityBoundingSet = "";
         };
       };
 
