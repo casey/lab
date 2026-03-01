@@ -130,7 +130,7 @@ in
       allowNullPassword = true;
     };
 
-    sudo.extraConfig = "Defaults closefrom_override";
+    sudo.extraConfig = "Defaults:git closefrom_override";
 
     sudo.extraRules = [
       {
