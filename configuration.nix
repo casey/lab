@@ -119,6 +119,11 @@ in
   };
 
   security = {
+    pam.services.sshd = {
+      unixAuth = lib.mkForce true;
+      allowNullPassword = true;
+    };
+
     sudo.extraConfig = "Defaults closefrom_override";
 
     sudo.extraRules = [
@@ -229,6 +234,17 @@ in
         PermitRootLogin = "prohibit-password";
         PasswordAuthentication = false;
       };
+      extraConfig = ''
+        Match User game
+          ForceCommand /var/lib/game/game ssh
+          PasswordAuthentication yes
+          PermitEmptyPasswords yes
+          DisableForwarding yes
+          PermitUserRC no
+          MaxSessions 2
+          ClientAliveInterval 120
+          ClientAliveCountMax 3
+      '';
     };
 
     postfix = {
@@ -307,6 +323,8 @@ in
         home = "/var/lib/game";
         isSystemUser = true;
         group = "game";
+        hashedPassword = "";
+        shell = pkgs.bash;
       };
       postfix.extraGroups = [ "opendkim" "opendmarc" "acme" ];
       root = {
