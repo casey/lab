@@ -312,6 +312,7 @@ in
       };
       game = {
         home = "/var/lib/game";
+        hashedPassword = "!";
         isSystemUser = true;
         group = "game";
       };
