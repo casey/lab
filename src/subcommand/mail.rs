@@ -13,7 +13,7 @@ pub(crate) struct Mail {
   db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
-  #[arg(long, default_value = "/root/sessions")]
+  #[arg(long, default_value = SESSION_DIR)]
   session_dir: PathBuf,
 }
 

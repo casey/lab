@@ -2,7 +2,6 @@ use super::*;
 
 use std::os::{fd::FromRawFd, unix::net::UnixDatagram};
 
-const SESSION_DIR: &str = "/root/sessions";
 const REPO_URL: &str = "git@localhost:root/notebook.git";
 const SESSION_NAME: &str = "notebook";
 

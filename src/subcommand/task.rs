@@ -1,7 +1,5 @@
 use super::*;
 
-const SESSION_DIR: &str = "/root/sessions";
-
 #[derive(clap::Args)]
 pub(crate) struct Task {
   #[arg(long)]
@@ -16,30 +14,50 @@ pub(crate) struct Task {
   sendmail: PathBuf,
   #[arg(long, default_value = "/root/mail")]
   dir: PathBuf,
+  #[arg(long)]
+  session: Option<String>,
+  #[arg(long)]
+  reset: bool,
 }
 
 impl Task {
   pub(crate) fn run(self) -> Result {
+    let db_path = self.db.unwrap_or_else(db_path);
+
+    if self.reset {
+      let session = self.session.as_deref().expect("--reset requires --session");
+      return reset_session(&db_path, session);
+    }
+
     let body =
       fs::read_to_string(&self.prompt).context(error::FilesystemIo { path: &self.prompt })?;
 
-    let session = uuid::Uuid::now_v7().to_string();
+    let (session, resume) = if let Some(ref name) = self.session {
+      lookup_session(&db_path, name)?
+    } else {
+      (uuid::Uuid::now_v7().to_string(), false)
+    };
 
     let response = invoke_agent(
       &self.claude,
       Path::new(SESSION_DIR),
       &session,
-      false,
+      resume,
       &body,
       None,
       false,
     )?;
 
+    if let Some(ref name) = self.session
+      && !resume
+    {
+      save_session(&db_path, name, &session)?;
+    }
+
     let html = mail::Mail::markdown_to_html(&response);
 
     let message_id = format!("{}@tulip.farm", uuid::Uuid::now_v7());
 
-    let db_path = self.db.unwrap_or_else(db_path);
     let db = redb::Database::create(&db_path).context(error::DatabaseOpen { path: &db_path })?;
     let write_txn = db.begin_write().context(error::DatabaseTransaction)?;
     {

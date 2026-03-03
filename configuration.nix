@@ -440,7 +440,7 @@ in
       gamemaster = {
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab gamemaster --claude ${claude}/bin/claude";
+          ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab task --name gamemaster --prompt ${./tasks/gamemaster.md} --session gamemaster --claude ${claude}/bin/claude";
         };
       };
 

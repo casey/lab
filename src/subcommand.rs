@@ -1,5 +1,4 @@
 mod chat;
-mod gamemaster;
 mod log;
 mod mail;
 mod mood;
@@ -11,6 +10,7 @@ mod task;
 
 use super::*;
 
+const SESSION_DIR: &str = "/root/sessions";
 const SESSIONS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("sessions");
 
 pub(crate) fn db_path() -> PathBuf {
@@ -171,7 +171,6 @@ pub(crate) fn invoke_agent(
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
   Chat(chat::Chat),
-  Gamemaster(gamemaster::Gamemaster),
   Log(log::Log),
   Mail(mail::Mail),
   Mood(mood::Mood),
@@ -186,7 +185,6 @@ impl Subcommand {
   pub(crate) fn run(self) -> Result {
     match self {
       Self::Chat(chat) => chat.run(),
-      Self::Gamemaster(gamemaster) => gamemaster.run(),
       Self::Log(log) => log.run(),
       Self::Mail(mail) => mail.run(),
       Self::Mood(mood) => mood.run(),

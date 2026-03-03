@@ -15,7 +15,6 @@ const SERVER: &str = "tulip.farm";
 const PORT: u16 = 6697;
 const NICK: &str = "root";
 const PASSWORD_FILE: &str = "/root/secrets/ergo-password";
-const SESSION_DIR: &str = "/root/sessions";
 const ALLOWED_SENDER: &str = "rodarmor";
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
