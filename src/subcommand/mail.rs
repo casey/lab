@@ -131,12 +131,14 @@ impl Mail {
   fn reply(&self, message: &Message) -> Result {
     let (session, resume) = self.resolve_session(message)?;
 
+    let body = strip_quoted_reply(&message.body, LOCAL_ADDRESS);
+
     let response = invoke_agent(
       &self.claude,
       &self.session_dir,
       &session,
       resume,
-      &message.body,
+      &body,
       None,
       false,
     )?;

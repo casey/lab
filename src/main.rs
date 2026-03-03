@@ -1,5 +1,5 @@
 use {
-  crate::{error::Error, message::Message, subcommand::Subcommand},
+  crate::{error::Error, message::Message, message::strip_quoted_reply, subcommand::Subcommand},
   clap::Parser,
   mailparse::MailHeaderMap,
   redb::ReadableDatabase,

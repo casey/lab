@@ -88,6 +88,36 @@ impl Message {
   }
 }
 
+pub(crate) fn strip_quoted_reply(body: &str, address: &str) -> String {
+  let lines = body.lines().collect::<Vec<_>>();
+
+  for i in (0..lines.len()).rev() {
+    let trimmed = lines[i].trim();
+
+    if !trimmed.contains(address) || !trimmed.ends_with("wrote:") {
+      continue;
+    }
+
+    let all_quoted = lines[i + 1..].iter().all(|line| {
+      let t = line.trim();
+      t.is_empty() || t.starts_with('>')
+    });
+
+    if !all_quoted {
+      continue;
+    }
+
+    let mut end = i;
+    while end > 0 && lines[end - 1].trim().is_empty() {
+      end -= 1;
+    }
+
+    return lines[..end].join("\n");
+  }
+
+  body.to_string()
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -181,6 +211,38 @@ mod tests {
     case(
       b"From: foo@bar.com\r\nMessage-ID: <foo@bar>\r\nSubject: RE: foo\r\n\r\n",
       "RE: foo",
+    );
+  }
+
+  #[test]
+  fn strip_quoted_reply() {
+    #[track_caller]
+    fn case(body: &str, expected: &str) {
+      assert_eq!(super::strip_quoted_reply(body, "root@tulip.farm"), expected);
+    }
+
+    case("foo", "foo");
+
+    case(
+      "foo\n\nOn Mon, Jan 1 Root <root@tulip.farm> wrote:\n\n> bar\n> baz",
+      "foo",
+    );
+
+    case(
+      "foo\n\nOn Mon, Jan 1 Root <root@tulip.farm> wrote:\n\n> bar\nqux",
+      "foo\n\nOn Mon, Jan 1 Root <root@tulip.farm> wrote:\n\n> bar\nqux",
+    );
+
+    case(
+      "foo\n\nOn Mon, Jan 1 Other <other@example.com> wrote:\n\n> bar",
+      "foo\n\nOn Mon, Jan 1 Other <other@example.com> wrote:\n\n> bar",
+    );
+
+    case("On Mon, Jan 1 Root <root@tulip.farm> wrote:\n\n> bar", "");
+
+    case(
+      "foo\n\nOn Mon, Jan 1 Root <root@tulip.farm> wrote:\n\n> bar\n>\n>> baz",
+      "foo",
     );
   }
 
