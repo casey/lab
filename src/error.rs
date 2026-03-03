@@ -70,4 +70,6 @@ pub(crate) enum Error {
   JournalSend { source: io::Error },
   #[snafu(display("failed to send Pushover notification"))]
   PushoverSend { source: reqwest::Error },
+  #[snafu(display("session `{name}` not found"))]
+  SessionNotFound { name: String },
 }

@@ -5,6 +5,7 @@ mod mood;
 mod note;
 mod notebook;
 mod notify;
+mod resume;
 mod sessions;
 mod task;
 
@@ -177,6 +178,7 @@ pub(crate) enum Subcommand {
   Note(note::Note),
   Notebook(notebook::Notebook),
   Notify(notify::Notify),
+  Resume(resume::Resume),
   Sessions(sessions::Sessions),
   Task(task::Task),
 }
@@ -191,6 +193,7 @@ impl Subcommand {
       Self::Note(note) => note.run(),
       Self::Notebook(notebook) => notebook.run(),
       Self::Notify(notify) => notify.run(),
+      Self::Resume(resume) => resume.run(),
       Self::Sessions(sessions) => sessions.run(),
       Self::Task(task) => task.run(),
     }
