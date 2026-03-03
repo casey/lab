@@ -16,6 +16,7 @@ let
         ./Cargo.lock
         ./src
         ./tests
+        ./tasks
       ];
     };
     cargoLock.lockFile = ./Cargo.lock;
@@ -414,6 +415,13 @@ in
         };
       };
 
+      audit = {
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "/run/wrappers/bin/sudo -i ${lab}/bin/lab task --name audit --prompt ${./tasks/audit.md} --claude ${claude}/bin/claude";
+        };
+      };
+
       gamemaster = {
         serviceConfig = {
           Type = "oneshot";
@@ -444,6 +452,14 @@ in
           RuntimeDirectoryMode = "0750";
           UMask = "0007";
         };
+      };
+    };
+
+    timers.audit = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 06:00:00";
+        Persistent = true;
       };
     };
 

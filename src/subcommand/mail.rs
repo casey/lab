@@ -1,6 +1,6 @@
 use super::*;
 
-const THREADS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("threads");
+pub(super) const THREADS: redb::TableDefinition<&str, &str> = redb::TableDefinition::new("threads");
 const LOCAL_ADDRESS: &str = "root@tulip.farm";
 
 #[derive(clap::Args)]
@@ -35,7 +35,7 @@ impl Mail {
     Ok(())
   }
 
-  fn save_to_maildir(maildir: &Path, data: &[u8]) -> Result {
+  pub(super) fn save_to_maildir(maildir: &Path, data: &[u8]) -> Result {
     for dir in ["cur", "new", "tmp"] {
       let path = maildir.join(dir);
       fs::create_dir_all(&path).context(error::FilesystemIo { path })?;
@@ -113,7 +113,7 @@ impl Mail {
     Ok((session, resume))
   }
 
-  fn markdown_to_html(markdown: &str) -> String {
+  pub(super) fn markdown_to_html(markdown: &str) -> String {
     let options = pulldown_cmark::Options::ENABLE_TABLES
       | pulldown_cmark::Options::ENABLE_FOOTNOTES
       | pulldown_cmark::Options::ENABLE_STRIKETHROUGH

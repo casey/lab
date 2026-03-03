@@ -7,6 +7,7 @@ mod note;
 mod notebook;
 mod notify;
 mod sessions;
+mod task;
 
 use super::*;
 
@@ -178,6 +179,7 @@ pub(crate) enum Subcommand {
   Notebook(notebook::Notebook),
   Notify(notify::Notify),
   Sessions(sessions::Sessions),
+  Task(task::Task),
 }
 
 impl Subcommand {
@@ -192,6 +194,7 @@ impl Subcommand {
       Self::Notebook(notebook) => notebook.run(),
       Self::Notify(notify) => notify.run(),
       Self::Sessions(sessions) => sessions.run(),
+      Self::Task(task) => task.run(),
     }
   }
 }
