@@ -151,6 +151,20 @@ in
   };
 
   services = {
+    fail2ban = {
+      enable = true;
+      maxretry = 5;
+      bantime = "1h";
+      jails.sshd = {
+        settings = {
+          filter = "sshd[mode=aggressive]";
+          maxretry = 3;
+          findtime = 600;
+          bantime = "1h";
+        };
+      };
+    };
+
     forgejo = {
       enable = true;
       user = "git";
