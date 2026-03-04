@@ -45,6 +45,7 @@ in
     };
 
     variables.IS_SANDBOX = "1";
+    variables.PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
 
     systemPackages = with pkgs; [
       btop
@@ -64,6 +65,8 @@ in
       neovim
       nix-search
       openssl
+      openssl.dev
+      pkg-config
       python3
       ripgrep
       rustup
