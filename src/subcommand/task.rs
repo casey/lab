@@ -16,18 +16,11 @@ pub(crate) struct Task {
   dir: PathBuf,
   #[arg(long)]
   session: Option<String>,
-  #[arg(long)]
-  reset: bool,
 }
 
 impl Task {
   pub(crate) fn run(self) -> Result {
     let db_path = self.db.unwrap_or_else(db_path);
-
-    if self.reset {
-      let session = self.session.as_deref().expect("--reset requires --session");
-      return reset_session(&db_path, session);
-    }
 
     let body =
       fs::read_to_string(&self.prompt).context(error::FilesystemIo { path: &self.prompt })?;

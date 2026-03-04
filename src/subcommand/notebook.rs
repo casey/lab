@@ -17,17 +17,10 @@ pub(crate) struct Notebook {
   db: Option<PathBuf>,
   #[arg(long, default_value = "claude")]
   claude: PathBuf,
-  #[arg(long)]
-  reset: bool,
 }
 
 impl Notebook {
   pub(crate) fn run(self) -> Result {
-    if self.reset {
-      let db = self.db.clone().unwrap_or_else(db_path);
-      return reset_session(&db, SESSION_NAME);
-    }
-
     let socket = unsafe { UnixDatagram::from_raw_fd(3) };
 
     let mut buf = [0u8; 4096];
